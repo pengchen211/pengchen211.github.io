@@ -1,19 +1,126 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-03-17T18:09:52+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis学习笔记</title><link href="/jekyll/update/2019/03/17/Redis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.html" rel="alternate" type="text/html" title="Redis学习笔记" /><published>2019-03-17T14:42:02+08:00</published><updated>2019-03-17T14:42:02+08:00</updated><id>/jekyll/update/2019/03/17/Redis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0</id><content type="html" xml:base="/jekyll/update/2019/03/17/Redis%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.html">&lt;h3 id=&quot;0概述&quot;&gt;0.概述&lt;/h3&gt;
-&lt;p&gt;最近在学习redis，整理下主要知识点&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-03-18T19:57:41+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis-数据结构</title><link href="/jekyll/update/2019/03/18/redis-datastructure-and-object.html" rel="alternate" type="text/html" title="Redis-数据结构" /><published>2019-03-18T14:42:02+08:00</published><updated>2019-03-18T14:42:02+08:00</updated><id>/jekyll/update/2019/03/18/redis-datastructure-and-object</id><content type="html" xml:base="/jekyll/update/2019/03/18/redis-datastructure-and-object.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
+    &lt;li&gt;&lt;a href=&quot;http://1e-gallery.redisbook.com/index.html&quot;&gt;Redis设计与实现图片集&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
 
-&lt;h3 id=&quot;1思维导图&quot;&gt;1.思维导图&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&quot;/assets/Redis.png&quot; alt=&quot;Redis.png&quot; /&gt;&lt;/p&gt;
+&lt;h3 id=&quot;1-简单动态字符串simple-dynamic-string&quot;&gt;1 简单动态字符串(simple dynamic string)&lt;/h3&gt;
 
-&lt;h3 id=&quot;2类型&quot;&gt;2.类型&lt;/h3&gt;</content><author><name></name></author><summary type="html">0.概述 最近在学习redis，整理下主要知识点</summary></entry><entry><title type="html">Welcome to Jekyll!</title><link href="/jekyll/update/2019/03/17/welcome-to-jekyll.html" rel="alternate" type="text/html" title="Welcome to Jekyll!" /><published>2019-03-17T14:42:02+08:00</published><updated>2019-03-17T14:42:02+08:00</updated><id>/jekyll/update/2019/03/17/welcome-to-jekyll</id><content type="html" xml:base="/jekyll/update/2019/03/17/welcome-to-jekyll.html">&lt;p&gt;You’ll find this post in your &lt;code class=&quot;highlighter-rouge&quot;&gt;_posts&lt;/code&gt; directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run &lt;code class=&quot;highlighter-rouge&quot;&gt;jekyll serve&lt;/code&gt;, which launches a web server and auto-regenerates your site when a file is updated.&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;struct sdshdr {
+   int len; // 字符串长度
+   int free; // 空闲长度
+   char buf[];
+};
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h4 id=&quot;11-图示&quot;&gt;1.1 图示&lt;/h4&gt;
 
-&lt;p&gt;To add new posts, simply add a file in the &lt;code class=&quot;highlighter-rouge&quot;&gt;_posts&lt;/code&gt; directory that follows the convention &lt;code class=&quot;highlighter-rouge&quot;&gt;YYYY-MM-DD-name-of-post.ext&lt;/code&gt; and includes the necessary front matter. Take a look at the source for this post to get an idea about how it works.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis-sds.png&quot; alt=&quot;sds&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;Jekyll also offers powerful support for code snippets:&lt;/p&gt;
+&lt;h4 id=&quot;12-优点&quot;&gt;1.2 优点&lt;/h4&gt;
+&lt;ol&gt;
+  &lt;li&gt;快速获取字符串长度&lt;/li&gt;
+  &lt;li&gt;避免缓冲区溢出&lt;/li&gt;
+  &lt;li&gt;减少修改字符串带来的内存重分配次数
+    &lt;blockquote&gt;
+      &lt;p&gt;&lt;strong&gt;空间分配策略&lt;/strong&gt;&lt;/p&gt;
+      &lt;ol&gt;
+        &lt;li&gt;空间预分配
+ 对sds修改并需要扩展长度时，会按一定规则分配额外空间
+          &lt;ul&gt;
+            &lt;li&gt;长度修改后将小于1MB，则分配与len同样大小的free&lt;/li&gt;
+            &lt;li&gt;将大于1MB，则分配1MB的free&lt;/li&gt;
+          &lt;/ul&gt;
+        &lt;/li&gt;
+        &lt;li&gt;惰性空间释放
+ 用于优化sds字符串缩短操作,当字符串缩短时，不会立即回收多于的内存，会将其作为free&lt;/li&gt;
+      &lt;/ol&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;二进制安全&lt;/li&gt;
+  &lt;li&gt;兼容C语言字符串函数&lt;/li&gt;
+&lt;/ol&gt;
 
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;print_hi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;nb&quot;&gt;puts&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Hi, &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;print_hi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Tom'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;c1&quot;&gt;#=&amp;gt; prints 'Hi, Tom' to STDOUT.&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+&lt;h3 id=&quot;2-链表&quot;&gt;2 链表&lt;/h3&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;typedef struct listNode {
+    struct listNode *prev;
+    struct listNode *next;
+    void *value;
+} listNode;
 
-&lt;p&gt;Check out the &lt;a href=&quot;https://jekyllrb.com/docs/home&quot;&gt;Jekyll docs&lt;/a&gt; for more info on how to get the most out of Jekyll. File all bugs/feature requests at &lt;a href=&quot;https://github.com/jekyll/jekyll&quot;&gt;Jekyll’s GitHub repo&lt;/a&gt;. If you have questions, you can ask them on &lt;a href=&quot;https://talk.jekyllrb.com/&quot;&gt;Jekyll Talk&lt;/a&gt;.&lt;/p&gt;</content><author><name></name></author><summary type="html">You’ll find this post in your _posts directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run jekyll serve, which launches a web server and auto-regenerates your site when a file is updated.</summary></entry></feed>
+typedef struct list {
+    listNode *head;
+    listNode *tail;
+    void *(*dup)(void *ptr);// 节点值复制函数
+    void (*free)(void *ptr);// 节点值释放函数
+    int (*match)(void *ptr, void *key);// 节点值对比函数
+    unsigned long len;
+} list;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h4 id=&quot;21-图示&quot;&gt;2.1 图示&lt;/h4&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis-list.png&quot; alt=&quot;link&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;3-字典&quot;&gt;3 字典&lt;/h3&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// 哈希表
+typedef struct dictht {
+		// 哈希表数组
+    dictEntry **table;// dictEntry
+		// 哈希表大小
+    unsigned long size;
+		// 哈希表大小掩码，用于计算索引值
+		// 总是size - 1，决定一个key映射到table数组哪个索引上
+    unsigned long sizemask;
+		// 哈希表已有节点的数量
+    unsigned long used;
+} dictht;
+
+// 哈希表节点
+typedef struct dictEntry {
+    void *key;
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+        double d;
+    } v;
+    struct dictEntry *next;// 用来解决hash冲突
+} dictEntry;
+
+// 字典
+typedef struct dict {
+    // 类型特定函数
+    dictType *type;
+    // 私有函数
+    void *privdata;
+    // 哈希表
+    // 一般只会使用ht[0]，ht[1]在rehash时使用
+    dictht ht[2];
+		// rehash索引
+    long rehashidx; /* rehashing not in progress if rehashidx == -1 */
+    unsigned long iterators; /* number of iterators currently running */
+} dict;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h4 id=&quot;31-图示&quot;&gt;3.1 图示&lt;/h4&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis-dictionary.png&quot; alt=&quot;dictionary&quot; /&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;32-rehash&quot;&gt;3.2 rehash&lt;/h4&gt;
+&lt;ol&gt;
+  &lt;li&gt;集中式&lt;/li&gt;
+  &lt;li&gt;渐进式
+    &lt;blockquote&gt;
+      &lt;ol&gt;
+        &lt;li&gt;为ht[1]分配空间，字典同时持有2个hash表&lt;/li&gt;
+        &lt;li&gt;字典中rehashindex置0&lt;/li&gt;
+        &lt;li&gt;每次对字典crud，会同时将ht[0]上rehashindex索引上的所有键值对rehash到ht[1],并rehashindex++&lt;/li&gt;
+        &lt;li&gt;完成后，rehashindex置-1&lt;/li&gt;
+      &lt;/ol&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;4-跳跃表skiplist&quot;&gt;4 跳跃表(skiplist)&lt;/h3&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集</summary></entry><entry><title type="html">Redis-概要</title><link href="/jekyll/update/2019/03/17/redis-summary.html" rel="alternate" type="text/html" title="Redis-概要" /><published>2019-03-17T14:42:02+08:00</published><updated>2019-03-17T14:42:02+08:00</updated><id>/jekyll/update/2019/03/17/redis-summary</id><content type="html" xml:base="/jekyll/update/2019/03/17/redis-summary.html">&lt;h3 id=&quot;1思维导图&quot;&gt;1.思维导图&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;待完善&lt;/strong&gt;
+&lt;img src=&quot;/assets/redis-xmind.png&quot; alt=&quot;xmind&quot; /&gt;&lt;/p&gt;</content><author><name></name></author><summary type="html">1.思维导图 待完善</summary></entry></feed>
