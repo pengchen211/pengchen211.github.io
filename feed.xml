@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-03-18T21:19:15+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis-数据结构</title><link href="/redis/2019/03/18/redis-datastructure-and-object.html" rel="alternate" type="text/html" title="Redis-数据结构" /><published>2019-03-18T00:00:00+08:00</published><updated>2019-03-18T00:00:00+08:00</updated><id>/redis/2019/03/18/redis-datastructure-and-object</id><content type="html" xml:base="/redis/2019/03/18/redis-datastructure-and-object.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-03-19T20:52:48+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis-数据结构</title><link href="/redis/2019/03/18/redis-datastructure-and-object.html" rel="alternate" type="text/html" title="Redis-数据结构" /><published>2019-03-18T00:00:00+08:00</published><updated>2019-03-18T00:00:00+08:00</updated><id>/redis/2019/03/18/redis-datastructure-and-object</id><content type="html" xml:base="/redis/2019/03/18/redis-datastructure-and-object.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
 &lt;blockquote&gt;
   &lt;ul&gt;
     &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
     &lt;li&gt;&lt;a href=&quot;http://1e-gallery.redisbook.com/index.html&quot;&gt;Redis设计与实现图片集&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;源代版本:5.0.3&lt;/li&gt;
   &lt;/ul&gt;
 &lt;/blockquote&gt;
 
@@ -16,7 +17,7 @@
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;h4 id=&quot;11-图示&quot;&gt;1.1 图示&lt;/h4&gt;
 
-&lt;p&gt;&lt;img src=&quot;/assets/redis-sds.png&quot; alt=&quot;sds&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-sds.png&quot; alt=&quot;sds&quot; /&gt;&lt;/p&gt;
 
 &lt;h4 id=&quot;12-优点&quot;&gt;1.2 优点&lt;/h4&gt;
 &lt;ol&gt;
@@ -59,7 +60,7 @@ typedef struct list {
 } list;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;h4 id=&quot;21-图示&quot;&gt;2.1 图示&lt;/h4&gt;
-&lt;p&gt;&lt;img src=&quot;/assets/redis-list.png&quot; alt=&quot;link&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-list.png&quot; alt=&quot;link&quot; /&gt;&lt;/p&gt;
 
 &lt;h3 id=&quot;3-字典&quot;&gt;3 字典&lt;/h3&gt;
 
@@ -104,7 +105,7 @@ typedef struct dict {
 
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;h4 id=&quot;31-图示&quot;&gt;3.1 图示&lt;/h4&gt;
-&lt;p&gt;&lt;img src=&quot;/assets/redis-dictionary.png&quot; alt=&quot;dictionary&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-dictionary.png&quot; alt=&quot;dictionary&quot; /&gt;&lt;/p&gt;
 
 &lt;h4 id=&quot;32-rehash&quot;&gt;3.2 rehash&lt;/h4&gt;
 &lt;ol&gt;
@@ -121,6 +122,158 @@ typedef struct dict {
   &lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;h3 id=&quot;4-跳跃表skiplist&quot;&gt;4 跳跃表(skiplist)&lt;/h3&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集</summary></entry><entry><title type="html">Redis-概要</title><link href="/redis/2019/03/17/redis-summary.html" rel="alternate" type="text/html" title="Redis-概要" /><published>2019-03-17T00:00:00+08:00</published><updated>2019-03-17T00:00:00+08:00</updated><id>/redis/2019/03/17/redis-summary</id><content type="html" xml:base="/redis/2019/03/17/redis-summary.html">&lt;h3 id=&quot;1思维导图&quot;&gt;1.思维导图&lt;/h3&gt;
+&lt;h3 id=&quot;4-跳跃表skiplist&quot;&gt;4 跳跃表(skiplist)&lt;/h3&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// 节点
+typedef struct zskiplistNode {
+    // 数据域
+    sds ele;
+    // 分值
+    double score;
+    // 后退指针
+    struct zskiplistNode *backward;
+    // 层
+    struct zskiplistLevel {
+       // 前进指针
+        struct zskiplistNode *forward;
+       // 跨度,当前节点到前进指针指向节点的距离
+        unsigned long span;
+    } level[];
+} zskiplistNode;
+
+// skiplist
+typedef struct zskiplist {
+    // 头尾节点
+    struct zskiplistNode *header, *tail;
+    // 跳表长度
+    unsigned long length;
+    // 所以节点中最大的层数
+    int level;
+} zskiplist;
+
+// zset定义
+typedef struct zset {
+    dict *dict; // 使用到了字典
+    zskiplist *zsl;// 使用到了跳表
+} zset;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h4 id=&quot;41-图示&quot;&gt;4.1 图示&lt;/h4&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-skiplist.png&quot; alt=&quot;skiplist&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;5-整数集合intset&quot;&gt;5 整数集合(intset)&lt;/h3&gt;
+&lt;p&gt;redis中set类型的底层实现之一,当一个set只包含整数值元素且数量不多时，就会采用intset作为底层实现&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// intset.h
+typedef struct intset {
+    uint32_t encoding;//编码方式
+    uint32_t length;//元素数量
+    int8_t contents[];//保存元素的数组,从小到大,具体元素类型取决于encoding
+} intset;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h4 id=&quot;51-升级upgrade&quot;&gt;5.1 升级(upgrade)&lt;/h4&gt;
+&lt;p&gt;添加新元素时，若新元素比现有元素类型要长，intset需要先进行升级(upgrade),之后才能添加新元素&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;升级步骤&lt;/strong&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ol&gt;
+    &lt;li&gt;根据新元素类型扩展contents数组大小，并为新元素分配空间&lt;/li&gt;
+    &lt;li&gt;转换现有元素类型，需保证原有顺序不变&lt;/li&gt;
+    &lt;li&gt;插入新元素&lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;strong&gt;升级优点&lt;/strong&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;提升灵活性，而不必担心出现类型错误&lt;/li&gt;
+    &lt;li&gt;节约空间&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;strong&gt;注意&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;intset不支持降级操作，一旦升级就会保持升级后的状态&lt;/p&gt;
+
+&lt;h3 id=&quot;6-压缩列表ziplist&quot;&gt;6 压缩列表(ziplist)&lt;/h3&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;The ziplist is a specially encoded dually linked list that is designed
+to be very memory efficient. It stores both strings and integer values,
+where integers are encoded as actual integers instead of a series of
+characters. It allows push and pop operations on either side of the list
+in O(1) time. However, because every operation requires a reallocation of
+the memory used by the ziplist, the actual complexity is related to the
+amount of memory used by the ziplist.// 来自ziplist.c中的注释&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;ziplist是redis中hash类型的底层实现之一，list类型的底层实现已替换为quicklist&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;127.0.0.1:6379&amp;gt; rpush lst 1 2 3
+(integer) 3
+127.0.0.1:6379&amp;gt; object encoding lst
+&quot;quicklist&quot;
+127.0.0.1:6379&amp;gt; hmset h k1 v1 k2 v2
+OK
+127.0.0.1:6379&amp;gt; object encoding h
+&quot;ziplist&quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h4 id=&quot;61-layout&quot;&gt;6.1 Layout&lt;/h4&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &amp;lt;zlbytes&amp;gt; &amp;lt;zltail&amp;gt; &amp;lt;zllen&amp;gt; &amp;lt;entry&amp;gt; &amp;lt;entry&amp;gt; ... &amp;lt;entry&amp;gt; &amp;lt;zlend&amp;gt;
+ 
+  NOTE: all fields are stored in little endian, if not specified otherwise.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;说明&lt;/strong&gt;&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;field&lt;/th&gt;
+      &lt;th&gt;字节数&lt;/th&gt;
+      &lt;th&gt;说明&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;zlbytes&lt;/td&gt;
+      &lt;td&gt;4bytes&lt;/td&gt;
+      &lt;td&gt;ziplist占用的字节数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;zltail&lt;/td&gt;
+      &lt;td&gt;4bytes&lt;/td&gt;
+      &lt;td&gt;ziplist尾节点距起始地址多少字节&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;zllen&lt;/td&gt;
+      &lt;td&gt;2bytes&lt;/td&gt;
+      &lt;td&gt;ziplist包含的节点数量，当节点数量超出其表示范围时节点数量需遍历才能知道&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;entry&lt;/td&gt;
+      &lt;td&gt;不定&lt;/td&gt;
+      &lt;td&gt;ziplist包含的各个节点，其长度由其内容决定&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;zlend&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;标识ziplist末端，固定值:0xFF(十进制255)&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;h4 id=&quot;62-节点&quot;&gt;6.2 节点&lt;/h4&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &amp;lt;prevlen&amp;gt; &amp;lt;encoding&amp;gt; &amp;lt;entry-data&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;说明&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;prevlen
+    &lt;blockquote&gt;
+      &lt;p&gt;1或者5字节,前一个节点的长度.若前一个节点长度小于254,则只占一字节。否则，占5字节，第一字节置254(0xFE)作为标识，余下4字节来表示长度.&lt;/p&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;encoding
+    &lt;blockquote&gt;
+
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3</summary></entry><entry><title type="html">Redis-概要</title><link href="/redis/2019/03/17/redis-summary.html" rel="alternate" type="text/html" title="Redis-概要" /><published>2019-03-17T00:00:00+08:00</published><updated>2019-03-17T00:00:00+08:00</updated><id>/redis/2019/03/17/redis-summary</id><content type="html" xml:base="/redis/2019/03/17/redis-summary.html">&lt;h3 id=&quot;1思维导图&quot;&gt;1.思维导图&lt;/h3&gt;
 &lt;p&gt;&lt;strong&gt;待完善&lt;/strong&gt;
-&lt;img src=&quot;/assets/redis-xmind.png&quot; alt=&quot;xmind&quot; /&gt;&lt;/p&gt;</content><author><name></name></author><summary type="html">1.思维导图 待完善</summary></entry></feed>
+&lt;img src=&quot;/assets/redis/redis-xmind.png&quot; alt=&quot;xmind&quot; /&gt;&lt;/p&gt;</content><author><name></name></author><summary type="html">1.思维导图 待完善</summary></entry></feed>

@@ -7,15 +7,15 @@
 <meta name="generator" content="Jekyll v3.8.5" />
 <meta property="og:title" content="Redis-数据结构" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="Reference 《Redis设计与实现》 Redis设计与实现图片集" />
-<meta property="og:description" content="Reference 《Redis设计与实现》 Redis设计与实现图片集" />
+<meta name="description" content="Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3" />
+<meta property="og:description" content="Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3" />
 <link rel="canonical" href="/redis/2019/03/18/redis-datastructure-and-object.html" />
 <meta property="og:url" content="/redis/2019/03/18/redis-datastructure-and-object.html" />
 <meta property="og:site_name" content="彭晨的博客" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2019-03-18T00:00:00+08:00" />
 <script type="application/ld+json">
-{"description":"Reference 《Redis设计与实现》 Redis设计与实现图片集","@type":"BlogPosting","url":"/redis/2019/03/18/redis-datastructure-and-object.html","headline":"Redis-数据结构","dateModified":"2019-03-18T00:00:00+08:00","datePublished":"2019-03-18T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"/redis/2019/03/18/redis-datastructure-and-object.html"},"@context":"https://schema.org"}</script>
+{"description":"Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3","@type":"BlogPosting","url":"/redis/2019/03/18/redis-datastructure-and-object.html","headline":"Redis-数据结构","dateModified":"2019-03-18T00:00:00+08:00","datePublished":"2019-03-18T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"/redis/2019/03/18/redis-datastructure-and-object.html"},"@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="彭晨的博客" /></head>
 <body><header class="site-header" role="banner">
@@ -50,6 +50,7 @@
   <ul>
     <li>《Redis设计与实现》</li>
     <li><a href="http://1e-gallery.redisbook.com/index.html">Redis设计与实现图片集</a></li>
+    <li>源代版本:5.0.3</li>
   </ul>
 </blockquote>
 
@@ -63,7 +64,7 @@
 </code></pre></div></div>
 <h4 id="11-图示">1.1 图示</h4>
 
-<p><img src="/assets/redis-sds.png" alt="sds" /></p>
+<p><img src="/assets/redis/redis-sds.png" alt="sds" /></p>
 
 <h4 id="12-优点">1.2 优点</h4>
 <ol>
@@ -106,7 +107,7 @@ typedef struct list {
 } list;
 </code></pre></div></div>
 <h4 id="21-图示">2.1 图示</h4>
-<p><img src="/assets/redis-list.png" alt="link" /></p>
+<p><img src="/assets/redis/redis-list.png" alt="link" /></p>
 
 <h3 id="3-字典">3 字典</h3>
 
@@ -151,7 +152,7 @@ typedef struct dict {
 
 </code></pre></div></div>
 <h4 id="31-图示">3.1 图示</h4>
-<p><img src="/assets/redis-dictionary.png" alt="dictionary" /></p>
+<p><img src="/assets/redis/redis-dictionary.png" alt="dictionary" /></p>
 
 <h4 id="32-rehash">3.2 rehash</h4>
 <ol>
@@ -169,6 +170,158 @@ typedef struct dict {
 </ol>
 
 <h3 id="4-跳跃表skiplist">4 跳跃表(skiplist)</h3>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// 节点
+typedef struct zskiplistNode {
+    // 数据域
+    sds ele;
+    // 分值
+    double score;
+    // 后退指针
+    struct zskiplistNode *backward;
+    // 层
+    struct zskiplistLevel {
+       // 前进指针
+        struct zskiplistNode *forward;
+       // 跨度,当前节点到前进指针指向节点的距离
+        unsigned long span;
+    } level[];
+} zskiplistNode;
+
+// skiplist
+typedef struct zskiplist {
+    // 头尾节点
+    struct zskiplistNode *header, *tail;
+    // 跳表长度
+    unsigned long length;
+    // 所以节点中最大的层数
+    int level;
+} zskiplist;
+
+// zset定义
+typedef struct zset {
+    dict *dict; // 使用到了字典
+    zskiplist *zsl;// 使用到了跳表
+} zset;
+</code></pre></div></div>
+<h4 id="41-图示">4.1 图示</h4>
+<p><img src="/assets/redis/redis-skiplist.png" alt="skiplist" /></p>
+
+<h3 id="5-整数集合intset">5 整数集合(intset)</h3>
+<p>redis中set类型的底层实现之一,当一个set只包含整数值元素且数量不多时，就会采用intset作为底层实现</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// intset.h
+typedef struct intset {
+    uint32_t encoding;//编码方式
+    uint32_t length;//元素数量
+    int8_t contents[];//保存元素的数组,从小到大,具体元素类型取决于encoding
+} intset;
+</code></pre></div></div>
+<h4 id="51-升级upgrade">5.1 升级(upgrade)</h4>
+<p>添加新元素时，若新元素比现有元素类型要长，intset需要先进行升级(upgrade),之后才能添加新元素</p>
+
+<p><strong>升级步骤</strong></p>
+<blockquote>
+  <ol>
+    <li>根据新元素类型扩展contents数组大小，并为新元素分配空间</li>
+    <li>转换现有元素类型，需保证原有顺序不变</li>
+    <li>插入新元素</li>
+  </ol>
+</blockquote>
+
+<p><strong>升级优点</strong></p>
+<blockquote>
+  <ul>
+    <li>提升灵活性，而不必担心出现类型错误</li>
+    <li>节约空间</li>
+  </ul>
+</blockquote>
+
+<p><strong>注意</strong></p>
+
+<p>intset不支持降级操作，一旦升级就会保持升级后的状态</p>
+
+<h3 id="6-压缩列表ziplist">6 压缩列表(ziplist)</h3>
+<blockquote>
+  <p>The ziplist is a specially encoded dually linked list that is designed
+to be very memory efficient. It stores both strings and integer values,
+where integers are encoded as actual integers instead of a series of
+characters. It allows push and pop operations on either side of the list
+in O(1) time. However, because every operation requires a reallocation of
+the memory used by the ziplist, the actual complexity is related to the
+amount of memory used by the ziplist.// 来自ziplist.c中的注释</p>
+</blockquote>
+
+<p>ziplist是redis中hash类型的底层实现之一，list类型的底层实现已替换为quicklist</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; rpush lst 1 2 3
+(integer) 3
+127.0.0.1:6379&gt; object encoding lst
+"quicklist"
+127.0.0.1:6379&gt; hmset h k1 v1 k2 v2
+OK
+127.0.0.1:6379&gt; object encoding h
+"ziplist"
+</code></pre></div></div>
+<h4 id="61-layout">6.1 Layout</h4>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  &lt;zlbytes&gt; &lt;zltail&gt; &lt;zllen&gt; &lt;entry&gt; &lt;entry&gt; ... &lt;entry&gt; &lt;zlend&gt;
+ 
+  NOTE: all fields are stored in little endian, if not specified otherwise.
+</code></pre></div></div>
+
+<p><strong>说明</strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>field</th>
+      <th>字节数</th>
+      <th>说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>zlbytes</td>
+      <td>4bytes</td>
+      <td>ziplist占用的字节数</td>
+    </tr>
+    <tr>
+      <td>zltail</td>
+      <td>4bytes</td>
+      <td>ziplist尾节点距起始地址多少字节</td>
+    </tr>
+    <tr>
+      <td>zllen</td>
+      <td>2bytes</td>
+      <td>ziplist包含的节点数量，当节点数量超出其表示范围时节点数量需遍历才能知道</td>
+    </tr>
+    <tr>
+      <td>entry</td>
+      <td>不定</td>
+      <td>ziplist包含的各个节点，其长度由其内容决定</td>
+    </tr>
+    <tr>
+      <td>zlend</td>
+      <td>1byte</td>
+      <td>标识ziplist末端，固定值:0xFF(十进制255)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h4 id="62-节点">6.2 节点</h4>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code> &lt;prevlen&gt; &lt;encoding&gt; &lt;entry-data&gt;
+</code></pre></div></div>
+<p><strong>说明</strong></p>
+<ul>
+  <li>prevlen
+    <blockquote>
+      <p>1或者5字节,前一个节点的长度.若前一个节点长度小于254,则只占一字节。否则，占5字节，第一字节置254(0xFE)作为标识，余下4字节来表示长度.</p>
+    </blockquote>
+  </li>
+  <li>encoding
+    <blockquote>
+
+    </blockquote>
+  </li>
+</ul>
 
 
   </div><a class="u-url" href="/redis/2019/03/18/redis-datastructure-and-object.html" hidden></a>
