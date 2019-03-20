@@ -1,4 +1,94 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-03-19T20:52:48+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis-数据结构</title><link href="/redis/2019/03/18/redis-datastructure-and-object.html" rel="alternate" type="text/html" title="Redis-数据结构" /><published>2019-03-18T00:00:00+08:00</published><updated>2019-03-18T00:00:00+08:00</updated><id>/redis/2019/03/18/redis-datastructure-and-object</id><content type="html" xml:base="/redis/2019/03/18/redis-datastructure-and-object.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-03-20T18:08:39+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis-对象</title><link href="/redis/2019/03/20/redis-object.html" rel="alternate" type="text/html" title="Redis-对象" /><published>2019-03-20T00:00:00+08:00</published><updated>2019-03-20T00:00:00+08:00</updated><id>/redis/2019/03/20/redis-object</id><content type="html" xml:base="/redis/2019/03/20/redis-object.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
+    &lt;li&gt;&lt;a href=&quot;http://1e-gallery.redisbook.com/index.html&quot;&gt;Redis设计与实现图片集&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;源代版本:5.0.3&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;1概述&quot;&gt;1概述&lt;/h3&gt;
+&lt;p&gt;redis基于前文介绍的数据结构构建了一个对象系统，包含如下五种对象:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;string&lt;/li&gt;
+  &lt;li&gt;list&lt;/li&gt;
+  &lt;li&gt;hash&lt;/li&gt;
+  &lt;li&gt;set&lt;/li&gt;
+  &lt;li&gt;zset
+redis对对象设置多种不同数据结构的实现，以优化在特定场景下的效率&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;strong&gt;对象结构&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// server.h
+typedef struct redisObject {
+    unsigned type:4;// 类型
+    unsigned encoding:4; // 编码
+    void *ptr; // 指向底层实现数据结构的指针
+    
+    // ...    
+} robj;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;11-类型与编码实现&quot;&gt;1.1 类型与编码实现&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;查看类型与编码&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&amp;gt; type key // 查看类型
+&amp;gt; object encoding key // 查看对象编码
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;编码&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// server.h
+
+/* Objects encoding. Some kind of objects like Strings and Hashes can be
+ * internally represented in multiple ways. The 'encoding' field of the object
+ * is set to one of this fields for this object. */
+
+// 一些对象的底层实现可以有多种方式，例如字符串和哈希
+// 如下是类型编码
+#define OBJ_ENCODING_RAW 0     /* Raw representation */
+#define OBJ_ENCODING_INT 1     /* Encoded as integer */
+#define OBJ_ENCODING_HT 2      /* Encoded as hash table */
+#define OBJ_ENCODING_ZIPMAP 3  /* Encoded as zipmap */
+#define OBJ_ENCODING_LINKEDLIST 4 /* No longer used: old list encoding. */
+#define OBJ_ENCODING_ZIPLIST 5 /* Encoded as ziplist */
+#define OBJ_ENCODING_INTSET 6  /* Encoded as intset */
+#define OBJ_ENCODING_SKIPLIST 7  /* Encoded as skiplist */
+#define OBJ_ENCODING_EMBSTR 8  /* Embedded sds string encoding */
+#define OBJ_ENCODING_QUICKLIST 9 /* Encoded as linked list of ziplists */
+#define OBJ_ENCODING_STREAM 10 /* Encoded as a radix tree of listpacks */
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;12-字符串对象&quot;&gt;1.2 字符串对象&lt;/h4&gt;
+&lt;p&gt;redis中字符串对象有三种编码方式:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;int&lt;/li&gt;
+  &lt;li&gt;embstr&lt;/li&gt;
+  &lt;li&gt;raw&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;示例代码&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;127.0.0.1:6379&amp;gt; set str 123
+OK
+127.0.0.1:6379&amp;gt; object encoding str
+&quot;int&quot;
+127.0.0.1:6379&amp;gt; set str abcdefghijklmnopqrstuvwxyzaaaaaaaaaaaaaaaaaa
+OK
+127.0.0.1:6379&amp;gt; strlen str
+(integer) 44
+127.0.0.1:6379&amp;gt; object encoding str
+&quot;embstr&quot;
+127.0.0.1:6379&amp;gt; set str abcdefghijklmnopqrstuvwxyzaaaaaaaaaaaaaaaaaaa
+OK
+127.0.0.1:6379&amp;gt; strlen str
+(integer) 45
+127.0.0.1:6379&amp;gt; object encoding str
+&quot;raw&quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3</summary></entry><entry><title type="html">Redis-数据结构</title><link href="/redis/2019/03/18/redis-datastructure.html" rel="alternate" type="text/html" title="Redis-数据结构" /><published>2019-03-18T00:00:00+08:00</published><updated>2019-03-18T00:00:00+08:00</updated><id>/redis/2019/03/18/redis-datastructure</id><content type="html" xml:base="/redis/2019/03/18/redis-datastructure.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
 &lt;blockquote&gt;
   &lt;ul&gt;
     &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
@@ -39,7 +129,8 @@
       &lt;/ol&gt;
     &lt;/blockquote&gt;
   &lt;/li&gt;
-  &lt;li&gt;二进制安全&lt;/li&gt;
+  &lt;li&gt;二进制安全
+以二进制方式处理buf里的数据&lt;/li&gt;
   &lt;li&gt;兼容C语言字符串函数&lt;/li&gt;
 &lt;/ol&gt;
 
@@ -66,20 +157,22 @@ typedef struct list {
 
 &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// 哈希表
 typedef struct dictht {
-		// 哈希表数组
+    // 哈希表数组
     dictEntry **table;// dictEntry
-		// 哈希表大小
+    // 哈希表大小
     unsigned long size;
-		// 哈希表大小掩码，用于计算索引值
-		// 总是size - 1，决定一个key映射到table数组哪个索引上
+    // 哈希表大小掩码，用于计算索引值
+    // 总是size - 1，决定一个key映射到table数组哪个索引上
     unsigned long sizemask;
-		// 哈希表已有节点的数量
+    // 哈希表已有节点的数量
     unsigned long used;
 } dictht;
 
 // 哈希表节点
 typedef struct dictEntry {
+    // 键
     void *key;
+    // 值
     union {
         void *val;
         uint64_t u64;
@@ -98,7 +191,7 @@ typedef struct dict {
     // 哈希表
     // 一般只会使用ht[0]，ht[1]在rehash时使用
     dictht ht[2];
-		// rehash索引
+    // rehash索引
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
     unsigned long iterators; /* number of iterators currently running */
 } dict;
@@ -149,12 +242,6 @@ typedef struct zskiplist {
     // 所以节点中最大的层数
     int level;
 } zskiplist;
-
-// zset定义
-typedef struct zset {
-    dict *dict; // 使用到了字典
-    zskiplist *zsl;// 使用到了跳表
-} zset;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;h4 id=&quot;41-图示&quot;&gt;4.1 图示&lt;/h4&gt;
 &lt;p&gt;&lt;img src=&quot;/assets/redis/redis-skiplist.png&quot; alt=&quot;skiplist&quot; /&gt;&lt;/p&gt;
@@ -260,20 +347,118 @@ OK
 &lt;/table&gt;
 
 &lt;h4 id=&quot;62-节点&quot;&gt;6.2 节点&lt;/h4&gt;
+&lt;p&gt;每个ziplist的节点可以保存一个字节数组或者一个整数数值&lt;/p&gt;
 &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &amp;lt;prevlen&amp;gt; &amp;lt;encoding&amp;gt; &amp;lt;entry-data&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;&lt;strong&gt;说明&lt;/strong&gt;&lt;/p&gt;
-&lt;ul&gt;
-  &lt;li&gt;prevlen
-    &lt;blockquote&gt;
-      &lt;p&gt;1或者5字节,前一个节点的长度.若前一个节点长度小于254,则只占一字节。否则，占5字节，第一字节置254(0xFE)作为标识，余下4字节来表示长度.&lt;/p&gt;
-    &lt;/blockquote&gt;
-  &lt;/li&gt;
-  &lt;li&gt;encoding
-    &lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;prevlen&lt;/strong&gt;&lt;/p&gt;
 
-    &lt;/blockquote&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3</summary></entry><entry><title type="html">Redis-概要</title><link href="/redis/2019/03/17/redis-summary.html" rel="alternate" type="text/html" title="Redis-概要" /><published>2019-03-17T00:00:00+08:00</published><updated>2019-03-17T00:00:00+08:00</updated><id>/redis/2019/03/17/redis-summary</id><content type="html" xml:base="/redis/2019/03/17/redis-summary.html">&lt;h3 id=&quot;1思维导图&quot;&gt;1.思维导图&lt;/h3&gt;
+&lt;p&gt;表示前一个节点长度(byte),自身长度分两种情况：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;1字节 前一个节点长度小于254bytes,则只占一字节&lt;/li&gt;
+  &lt;li&gt;5字节 前一个节点长度不小于254,占5字节.第一字节置254(0xFE)作为标识，余下4字节来表示长度&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;encoding&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;记录entry-data属性保存的数据类型以及长度,自身长度分两种情况:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;1,2或者5字节 值的最高位为00,01或者10.此时entry-data保存着字节数组,长度由encoding除去最高2位后的其他位记录&lt;/li&gt;
+  &lt;li&gt;1字节 最高位以11开头.此时entry-data保存着整数值&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;字节数组编码&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;encoding&lt;/th&gt;
+      &lt;th&gt;编码长度&lt;/th&gt;
+      &lt;th&gt;entry-data属性保存的值&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;00xxxxx&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;长度&amp;lt;=2^6的字节数组&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;01xxxxxx xxxxxxxx&lt;/td&gt;
+      &lt;td&gt;2bytes&lt;/td&gt;
+      &lt;td&gt;长度&amp;lt;= 2^14的字节数组&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11xxxxxx . . . .&lt;/td&gt;
+      &lt;td&gt;5bytes&lt;/td&gt;
+      &lt;td&gt;长度&amp;lt;= 2^46的字节数组&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;整数编码&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;encoding&lt;/th&gt;
+      &lt;th&gt;编码长度&lt;/th&gt;
+      &lt;th&gt;entry-data属性保存的值&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11000000&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;int16_t类型的整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11010000&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;int32_t类型的整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11100000&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;int64_t类型的整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11110000&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;24位有符号整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11111110&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;8位有符号整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;1111xxxx&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;此时无需entry-data属性，用xxxx来表示0 - 12&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;&lt;em&gt;说明&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;1111xxxx时，后4位不能为0000, 1110, 1111.前两个已在其他encoding中使用,最后一个为ziplist的结束标识,故只能0001~1101，又因数值从0开始故又在其基础上减1&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;entry-data&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;保存节点的值，字节数组或者整数，由encoding决定&lt;/p&gt;
+
+&lt;h4 id=&quot;63-连锁更新&quot;&gt;6.3 连锁更新&lt;/h4&gt;
+&lt;p&gt;当一系列略小于254bytes的节点前出现一个大于254bytes的节点后，使得后续节点连续扩展prevlen为5bytes&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ol&gt;
+    &lt;li&gt;插入大节点&lt;/li&gt;
+    &lt;li&gt;删除节点与大节点之间的节点，使得小节点前出现了大节&lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;em&gt;图示&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-ziplist-chain-update.png&quot; alt=&quot;chain-extend&quot; /&gt;&lt;/p&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3</summary></entry><entry><title type="html">Redis-概要</title><link href="/redis/2019/03/17/redis-summary.html" rel="alternate" type="text/html" title="Redis-概要" /><published>2019-03-17T00:00:00+08:00</published><updated>2019-03-17T00:00:00+08:00</updated><id>/redis/2019/03/17/redis-summary</id><content type="html" xml:base="/redis/2019/03/17/redis-summary.html">&lt;h3 id=&quot;1思维导图&quot;&gt;1.思维导图&lt;/h3&gt;
 &lt;p&gt;&lt;strong&gt;待完善&lt;/strong&gt;
 &lt;img src=&quot;/assets/redis/redis-xmind.png&quot; alt=&quot;xmind&quot; /&gt;&lt;/p&gt;</content><author><name></name></author><summary type="html">1.思维导图 待完善</summary></entry></feed>

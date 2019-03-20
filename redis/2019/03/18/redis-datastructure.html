@@ -9,13 +9,13 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3" />
 <meta property="og:description" content="Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3" />
-<link rel="canonical" href="/redis/2019/03/18/redis-datastructure-and-object.html" />
-<meta property="og:url" content="/redis/2019/03/18/redis-datastructure-and-object.html" />
+<link rel="canonical" href="/redis/2019/03/18/redis-datastructure.html" />
+<meta property="og:url" content="/redis/2019/03/18/redis-datastructure.html" />
 <meta property="og:site_name" content="彭晨的博客" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2019-03-18T00:00:00+08:00" />
 <script type="application/ld+json">
-{"description":"Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3","@type":"BlogPosting","url":"/redis/2019/03/18/redis-datastructure-and-object.html","headline":"Redis-数据结构","dateModified":"2019-03-18T00:00:00+08:00","datePublished":"2019-03-18T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"/redis/2019/03/18/redis-datastructure-and-object.html"},"@context":"https://schema.org"}</script>
+{"description":"Reference 《Redis设计与实现》 Redis设计与实现图片集 源代版本:5.0.3","@type":"BlogPosting","url":"/redis/2019/03/18/redis-datastructure.html","headline":"Redis-数据结构","dateModified":"2019-03-18T00:00:00+08:00","datePublished":"2019-03-18T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"/redis/2019/03/18/redis-datastructure.html"},"@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="彭晨的博客" /></head>
 <body><header class="site-header" role="banner">
@@ -86,7 +86,8 @@
       </ol>
     </blockquote>
   </li>
-  <li>二进制安全</li>
+  <li>二进制安全
+以二进制方式处理buf里的数据</li>
   <li>兼容C语言字符串函数</li>
 </ol>
 
@@ -113,20 +114,22 @@ typedef struct list {
 
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// 哈希表
 typedef struct dictht {
-		// 哈希表数组
+    // 哈希表数组
     dictEntry **table;// dictEntry
-		// 哈希表大小
+    // 哈希表大小
     unsigned long size;
-		// 哈希表大小掩码，用于计算索引值
-		// 总是size - 1，决定一个key映射到table数组哪个索引上
+    // 哈希表大小掩码，用于计算索引值
+    // 总是size - 1，决定一个key映射到table数组哪个索引上
     unsigned long sizemask;
-		// 哈希表已有节点的数量
+    // 哈希表已有节点的数量
     unsigned long used;
 } dictht;
 
 // 哈希表节点
 typedef struct dictEntry {
+    // 键
     void *key;
+    // 值
     union {
         void *val;
         uint64_t u64;
@@ -145,7 +148,7 @@ typedef struct dict {
     // 哈希表
     // 一般只会使用ht[0]，ht[1]在rehash时使用
     dictht ht[2];
-		// rehash索引
+    // rehash索引
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
     unsigned long iterators; /* number of iterators currently running */
 } dict;
@@ -196,12 +199,6 @@ typedef struct zskiplist {
     // 所以节点中最大的层数
     int level;
 } zskiplist;
-
-// zset定义
-typedef struct zset {
-    dict *dict; // 使用到了字典
-    zskiplist *zsl;// 使用到了跳表
-} zset;
 </code></pre></div></div>
 <h4 id="41-图示">4.1 图示</h4>
 <p><img src="/assets/redis/redis-skiplist.png" alt="skiplist" /></p>
@@ -307,24 +304,121 @@ OK
 </table>
 
 <h4 id="62-节点">6.2 节点</h4>
+<p>每个ziplist的节点可以保存一个字节数组或者一个整数数值</p>
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code> &lt;prevlen&gt; &lt;encoding&gt; &lt;entry-data&gt;
 </code></pre></div></div>
-<p><strong>说明</strong></p>
-<ul>
-  <li>prevlen
-    <blockquote>
-      <p>1或者5字节,前一个节点的长度.若前一个节点长度小于254,则只占一字节。否则，占5字节，第一字节置254(0xFE)作为标识，余下4字节来表示长度.</p>
-    </blockquote>
-  </li>
-  <li>encoding
-    <blockquote>
+<p><strong>prevlen</strong></p>
 
-    </blockquote>
-  </li>
+<p>表示前一个节点长度(byte),自身长度分两种情况：</p>
+
+<ul>
+  <li>1字节 前一个节点长度小于254bytes,则只占一字节</li>
+  <li>5字节 前一个节点长度不小于254,占5字节.第一字节置254(0xFE)作为标识，余下4字节来表示长度</li>
 </ul>
 
+<p><strong>encoding</strong></p>
 
-  </div><a class="u-url" href="/redis/2019/03/18/redis-datastructure-and-object.html" hidden></a>
+<p>记录entry-data属性保存的数据类型以及长度,自身长度分两种情况:</p>
+<ul>
+  <li>1,2或者5字节 值的最高位为00,01或者10.此时entry-data保存着字节数组,长度由encoding除去最高2位后的其他位记录</li>
+  <li>1字节 最高位以11开头.此时entry-data保存着整数值</li>
+</ul>
+
+<p>字节数组编码</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>encoding</th>
+      <th>编码长度</th>
+      <th>entry-data属性保存的值</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>00xxxxx</td>
+      <td>1byte</td>
+      <td>长度&lt;=2^6的字节数组</td>
+    </tr>
+    <tr>
+      <td>01xxxxxx xxxxxxxx</td>
+      <td>2bytes</td>
+      <td>长度&lt;= 2^14的字节数组</td>
+    </tr>
+    <tr>
+      <td>11xxxxxx . . . .</td>
+      <td>5bytes</td>
+      <td>长度&lt;= 2^46的字节数组</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>整数编码</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>encoding</th>
+      <th>编码长度</th>
+      <th>entry-data属性保存的值</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>11000000</td>
+      <td>1byte</td>
+      <td>int16_t类型的整数</td>
+    </tr>
+    <tr>
+      <td>11010000</td>
+      <td>1byte</td>
+      <td>int32_t类型的整数</td>
+    </tr>
+    <tr>
+      <td>11100000</td>
+      <td>1byte</td>
+      <td>int64_t类型的整数</td>
+    </tr>
+    <tr>
+      <td>11110000</td>
+      <td>1byte</td>
+      <td>24位有符号整数</td>
+    </tr>
+    <tr>
+      <td>11111110</td>
+      <td>1byte</td>
+      <td>8位有符号整数</td>
+    </tr>
+    <tr>
+      <td>1111xxxx</td>
+      <td>1byte</td>
+      <td>此时无需entry-data属性，用xxxx来表示0 - 12</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><em>说明</em></p>
+
+<p>1111xxxx时，后4位不能为0000, 1110, 1111.前两个已在其他encoding中使用,最后一个为ziplist的结束标识,故只能0001~1101，又因数值从0开始故又在其基础上减1</p>
+
+<p><strong>entry-data</strong></p>
+
+<p>保存节点的值，字节数组或者整数，由encoding决定</p>
+
+<h4 id="63-连锁更新">6.3 连锁更新</h4>
+<p>当一系列略小于254bytes的节点前出现一个大于254bytes的节点后，使得后续节点连续扩展prevlen为5bytes</p>
+<blockquote>
+  <ol>
+    <li>插入大节点</li>
+    <li>删除节点与大节点之间的节点，使得小节点前出现了大节</li>
+  </ol>
+</blockquote>
+
+<p><em>图示</em></p>
+
+<p><img src="/assets/redis/redis-ziplist-chain-update.png" alt="chain-extend" /></p>
+
+  </div><a class="u-url" href="/redis/2019/03/18/redis-datastructure.html" hidden></a>
 </article>
 
       </div>
