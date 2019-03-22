@@ -1,22 +1,167 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-03-18T21:19:15+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis-数据结构</title><link href="/redis/2019/03/18/redis-datastructure-and-object.html" rel="alternate" type="text/html" title="Redis-数据结构" /><published>2019-03-18T00:00:00+08:00</published><updated>2019-03-18T00:00:00+08:00</updated><id>/redis/2019/03/18/redis-datastructure-and-object</id><content type="html" xml:base="/redis/2019/03/18/redis-datastructure-and-object.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-03-22T20:30:46+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis-对象</title><link href="/redis/2019/03/20/redis-object.html" rel="alternate" type="text/html" title="Redis-对象" /><published>2019-03-20T00:00:00+08:00</published><updated>2019-03-20T00:00:00+08:00</updated><id>/redis/2019/03/20/redis-object</id><content type="html" xml:base="/redis/2019/03/20/redis-object.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
 &lt;blockquote&gt;
   &lt;ul&gt;
     &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
     &lt;li&gt;&lt;a href=&quot;http://1e-gallery.redisbook.com/index.html&quot;&gt;Redis设计与实现图片集&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;源码版本:5.0.3&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;1概述&quot;&gt;1概述&lt;/h3&gt;
+&lt;p&gt;redis基于前文介绍的数据结构构建了一个对象系统，包含如下五种对象:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;string&lt;/li&gt;
+  &lt;li&gt;list&lt;/li&gt;
+  &lt;li&gt;hash&lt;/li&gt;
+  &lt;li&gt;set&lt;/li&gt;
+  &lt;li&gt;zset&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;redis对对象设置多种不同数据结构的实现，以优化在特定场景下的效率&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;对象结构&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// server.h&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;redisObject&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;// 类型&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;encoding&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// 编码&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// 指向底层实现数据结构的指针&lt;/span&gt;
+    
+    &lt;span class=&quot;c1&quot;&gt;// ...    &lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;robj&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;11-类型与编码实现&quot;&gt;1.1 类型与编码实现&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;查看类型与编码&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&amp;gt; type key // 查看类型
+&amp;gt; object encoding key // 查看对象编码
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;编码&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// server.h&lt;/span&gt;
+
+&lt;span class=&quot;cm&quot;&gt;/* Objects encoding. Some kind of objects like Strings and Hashes can be
+ * internally represented in multiple ways. The 'encoding' field of the object
+ * is set to one of this fields for this object. */&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// 一些对象的底层实现可以有多种方式，例如字符串和哈希&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 如下是类型编码&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define OBJ_ENCODING_RAW 0     &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Raw representation */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_INT 1     &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Encoded as integer */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_HT 2      &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Encoded as hash table */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_ZIPMAP 3  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Encoded as zipmap */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_LINKEDLIST 4 &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* No longer used: old list encoding. */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_ZIPLIST 5 &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Encoded as ziplist */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_INTSET 6  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Encoded as intset */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_SKIPLIST 7  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Encoded as skiplist */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_EMBSTR 8  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Embedded sds string encoding */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_QUICKLIST 9 &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Encoded as linked list of ziplists */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define OBJ_ENCODING_STREAM 10 &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Encoded as a radix tree of listpacks */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;12-字符串对象&quot;&gt;1.2 字符串对象&lt;/h4&gt;
+&lt;p&gt;redis中字符串对象有三种编码方式:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;int&lt;/li&gt;
+  &lt;li&gt;embstr&lt;/li&gt;
+  &lt;li&gt;raw&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;当字符串长度大于一定值时，采用raw编码&lt;/p&gt;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// object.c&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define OBJ_ENCODING_EMBSTR_SIZE_LIMIT 44
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;示例&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;127.0.0.1:6379&amp;gt; set str 123
+OK
+127.0.0.1:6379&amp;gt; object encoding str
+&quot;int&quot;
+127.0.0.1:6379&amp;gt; set str abcdefghijklmnopqrstuvwxyzaaaaaaaaaaaaaaaaaa
+OK
+127.0.0.1:6379&amp;gt; strlen str
+(integer) 44
+127.0.0.1:6379&amp;gt; object encoding str
+&quot;embstr&quot;
+127.0.0.1:6379&amp;gt; set str abcdefghijklmnopqrstuvwxyzaaaaaaaaaaaaaaaaaaa
+OK
+127.0.0.1:6379&amp;gt; strlen str
+(integer) 45
+127.0.0.1:6379&amp;gt; object encoding str
+&quot;raw&quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;raw与embstr对比&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;embstr编码用来保存短字符串,其内存空间连续,分配以及释放内存只需一次操作&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;raw
+&lt;img src=&quot;/assets/redis/redis-string-raw.png&quot; alt=&quot;raw&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;embstr
+&lt;img src=&quot;/assets/redis/redis-string-embstr.png&quot; alt=&quot;embstr&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;编码转换&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;一些情况下对字符串类型数据的修改会导致编码的变化&lt;br /&gt;
+e.g.&lt;/p&gt;
+&lt;blockquote&gt;
+
+  &lt;ol&gt;
+    &lt;li&gt;embstr –&amp;gt; raw&lt;/li&gt;
+    &lt;li&gt;int –&amp;gt; raw&lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;strong&gt;对embstr编码的字符串修改会使编码变为raw，redis没有对embstr编码的字符串提供修改操作&lt;/strong&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;13-列表对象&quot;&gt;1.3 列表对象&lt;/h3&gt;
+&lt;p&gt;编码方式quicklist&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;相关配置&lt;/strong&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;list-max-ziplist-size&lt;br /&gt;
+list-compress-depth&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;14-哈希对象&quot;&gt;1.4 哈希对象&lt;/h3&gt;
+&lt;p&gt;编码方式:ziplist, hashtable&lt;br /&gt;
+&lt;strong&gt;ziplist&lt;/strong&gt;编码时，相邻的两个entry一个为key，一个为value&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;相关配置&lt;/strong&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;hash-max-ziplist-entries&lt;br /&gt;
+hash-max-ziplist-value&lt;/p&gt;
+&lt;/blockquote&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集 源码版本:5.0.3</summary></entry><entry><title type="html">Redis-数据结构</title><link href="/redis/2019/03/18/redis-datastructure.html" rel="alternate" type="text/html" title="Redis-数据结构" /><published>2019-03-18T00:00:00+08:00</published><updated>2019-03-18T00:00:00+08:00</updated><id>/redis/2019/03/18/redis-datastructure</id><content type="html" xml:base="/redis/2019/03/18/redis-datastructure.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
+    &lt;li&gt;&lt;a href=&quot;http://1e-gallery.redisbook.com/index.html&quot;&gt;Redis设计与实现图片集&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href=&quot;https://blog.csdn.net/men_wen/article/details/70229375&quot;&gt;https://blog.csdn.net/men_wen/article/details/70229375&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;源码版本:5.0.3&lt;/li&gt;
   &lt;/ul&gt;
 &lt;/blockquote&gt;
 
 &lt;h3 id=&quot;1-简单动态字符串simple-dynamic-string&quot;&gt;1 简单动态字符串(simple dynamic string)&lt;/h3&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;struct sdshdr {
-   int len; // 字符串长度
-   int free; // 空闲长度
-   char buf[];
-};
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sdshdr&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+   &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// 字符串长度&lt;/span&gt;
+   &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;free&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// 空闲长度&lt;/span&gt;
+   &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;h4 id=&quot;11-图示&quot;&gt;1.1 图示&lt;/h4&gt;
 
-&lt;p&gt;&lt;img src=&quot;/assets/redis-sds.png&quot; alt=&quot;sds&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-sds.png&quot; alt=&quot;sds&quot; /&gt;&lt;/p&gt;
 
 &lt;h4 id=&quot;12-优点&quot;&gt;1.2 优点&lt;/h4&gt;
 &lt;ol&gt;
@@ -26,85 +171,88 @@
     &lt;blockquote&gt;
       &lt;p&gt;&lt;strong&gt;空间分配策略&lt;/strong&gt;&lt;/p&gt;
       &lt;ol&gt;
-        &lt;li&gt;空间预分配
+        &lt;li&gt;空间预分配&lt;br /&gt;
  对sds修改并需要扩展长度时，会按一定规则分配额外空间
           &lt;ul&gt;
             &lt;li&gt;长度修改后将小于1MB，则分配与len同样大小的free&lt;/li&gt;
             &lt;li&gt;将大于1MB，则分配1MB的free&lt;/li&gt;
           &lt;/ul&gt;
         &lt;/li&gt;
-        &lt;li&gt;惰性空间释放
+        &lt;li&gt;惰性空间释放&lt;br /&gt;
  用于优化sds字符串缩短操作,当字符串缩短时，不会立即回收多于的内存，会将其作为free&lt;/li&gt;
       &lt;/ol&gt;
     &lt;/blockquote&gt;
   &lt;/li&gt;
-  &lt;li&gt;二进制安全&lt;/li&gt;
+  &lt;li&gt;二进制安全
+以二进制方式处理buf里的数据&lt;/li&gt;
   &lt;li&gt;兼容C语言字符串函数&lt;/li&gt;
 &lt;/ol&gt;
 
 &lt;h3 id=&quot;2-链表&quot;&gt;2 链表&lt;/h3&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;typedef struct listNode {
-    struct listNode *prev;
-    struct listNode *next;
-    void *value;
-} listNode;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;listNode&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;listNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;prev&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;listNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;listNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-typedef struct list {
-    listNode *head;
-    listNode *tail;
-    void *(*dup)(void *ptr);// 节点值复制函数
-    void (*free)(void *ptr);// 节点值释放函数
-    int (*match)(void *ptr, void *key);// 节点值对比函数
-    unsigned long len;
-} list;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;list&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;listNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;head&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;listNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tail&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;// 节点值复制函数&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;free&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;// 节点值释放函数&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;match&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;// 节点值对比函数&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;list&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;h4 id=&quot;21-图示&quot;&gt;2.1 图示&lt;/h4&gt;
-&lt;p&gt;&lt;img src=&quot;/assets/redis-list.png&quot; alt=&quot;link&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-list.png&quot; alt=&quot;link&quot; /&gt;&lt;/p&gt;
 
 &lt;h3 id=&quot;3-字典&quot;&gt;3 字典&lt;/h3&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// 哈希表
-typedef struct dictht {
-		// 哈希表数组
-    dictEntry **table;// dictEntry
-		// 哈希表大小
-    unsigned long size;
-		// 哈希表大小掩码，用于计算索引值
-		// 总是size - 1，决定一个key映射到table数组哪个索引上
-    unsigned long sizemask;
-		// 哈希表已有节点的数量
-    unsigned long used;
-} dictht;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// 哈希表&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dictht&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 哈希表数组&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;dictEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;table&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;// dictEntry&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 哈希表大小&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 哈希表大小掩码，用于计算索引值&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 总是size - 1，决定一个key映射到table数组哪个索引上&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sizemask&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 哈希表已有节点的数量&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;used&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dictht&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-// 哈希表节点
-typedef struct dictEntry {
-    void *key;
-    union {
-        void *val;
-        uint64_t u64;
-        int64_t s64;
-        double d;
-    } v;
-    struct dictEntry *next;// 用来解决hash冲突
-} dictEntry;
+&lt;span class=&quot;c1&quot;&gt;// 哈希表节点&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dictEntry&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 键&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 值&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;union&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;val&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;uint64_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;u64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int64_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dictEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;// 用来解决hash冲突&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dictEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-// 字典
-typedef struct dict {
-    // 类型特定函数
-    dictType *type;
-    // 私有函数
-    void *privdata;
-    // 哈希表
-    // 一般只会使用ht[0]，ht[1]在rehash时使用
-    dictht ht[2];
-		// rehash索引
-    long rehashidx; /* rehashing not in progress if rehashidx == -1 */
-    unsigned long iterators; /* number of iterators currently running */
-} dict;
+&lt;span class=&quot;c1&quot;&gt;// 字典&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dict&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 类型特定函数&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;dictType&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 私有函数&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;privdata&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 哈希表&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 一般只会使用ht[0]，ht[1]在rehash时使用&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;dictht&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ht&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// rehash索引&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rehashidx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* rehashing not in progress if rehashidx == -1 */&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;iterators&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* number of iterators currently running */&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;h4 id=&quot;31-图示&quot;&gt;3.1 图示&lt;/h4&gt;
-&lt;p&gt;&lt;img src=&quot;/assets/redis-dictionary.png&quot; alt=&quot;dictionary&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-dictionary.png&quot; alt=&quot;dictionary&quot; /&gt;&lt;/p&gt;
 
 &lt;h4 id=&quot;32-rehash&quot;&gt;3.2 rehash&lt;/h4&gt;
 &lt;ol&gt;
@@ -121,6 +269,303 @@ typedef struct dict {
   &lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;h3 id=&quot;4-跳跃表skiplist&quot;&gt;4 跳跃表(skiplist)&lt;/h3&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集</summary></entry><entry><title type="html">Redis-概要</title><link href="/redis/2019/03/17/redis-summary.html" rel="alternate" type="text/html" title="Redis-概要" /><published>2019-03-17T00:00:00+08:00</published><updated>2019-03-17T00:00:00+08:00</updated><id>/redis/2019/03/17/redis-summary</id><content type="html" xml:base="/redis/2019/03/17/redis-summary.html">&lt;h3 id=&quot;1思维导图&quot;&gt;1.思维导图&lt;/h3&gt;
+&lt;h3 id=&quot;4-跳跃表skiplist&quot;&gt;4 跳跃表(skiplist)&lt;/h3&gt;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// 节点&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zskiplistNode&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 数据域&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;sds&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ele&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 分值&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;score&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 后退指针&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zskiplistNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;backward&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 层&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zskiplistLevel&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+       &lt;span class=&quot;c1&quot;&gt;// 前进指针&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zskiplistNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;forward&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+       &lt;span class=&quot;c1&quot;&gt;// 跨度,当前节点到前进指针指向节点的距离&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;span&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;level&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zskiplistNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// skiplist&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zskiplist&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 头尾节点&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zskiplistNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;header&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tail&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 跳表长度&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 所有节点中最大的层数&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;level&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;zskiplist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h4 id=&quot;41-图示&quot;&gt;4.1 图示&lt;/h4&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-skiplist.png&quot; alt=&quot;skiplist&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;5-整数集合intset&quot;&gt;5 整数集合(intset)&lt;/h3&gt;
+&lt;p&gt;redis中set类型的底层实现之一,当一个set只包含整数值元素且数量不多时，就会采用intset作为底层实现&lt;/p&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// intset.h&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intset&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;uint32_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;encoding&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;//编码方式&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;uint32_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;//元素数量&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int8_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;contents&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[];&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;//保存元素的数组,从小到大,具体元素类型取决于encoding&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intset&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h4 id=&quot;51-升级upgrade&quot;&gt;5.1 升级(upgrade)&lt;/h4&gt;
+&lt;p&gt;添加新元素时，若新元素比现有元素类型要长，intset需要先进行升级(upgrade),之后才能添加新元素&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;升级步骤&lt;/strong&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ol&gt;
+    &lt;li&gt;根据新元素类型扩展contents数组大小，并为新元素分配空间&lt;/li&gt;
+    &lt;li&gt;转换现有元素类型，需保证原有顺序不变&lt;/li&gt;
+    &lt;li&gt;插入新元素&lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;strong&gt;升级优点&lt;/strong&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;提升灵活性，而不必担心出现类型错误&lt;/li&gt;
+    &lt;li&gt;节约空间&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;strong&gt;注意&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;intset不支持降级操作，一旦升级就会保持升级后的状态&lt;/p&gt;
+
+&lt;h3 id=&quot;6-压缩列表ziplist&quot;&gt;6 压缩列表(ziplist)&lt;/h3&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;The ziplist is a specially encoded dually linked list that is designed
+to be very memory efficient. It stores both strings and integer values,
+where integers are encoded as actual integers instead of a series of
+characters. It allows push and pop operations on either side of the list
+in O(1) time. However, because every operation requires a reallocation of
+the memory used by the ziplist, the actual complexity is related to the
+amount of memory used by the ziplist.// 来自ziplist.c中的注释&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&quot;61-layout&quot;&gt;6.1 Layout&lt;/h4&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &amp;lt;zlbytes&amp;gt; &amp;lt;zltail&amp;gt; &amp;lt;zllen&amp;gt; &amp;lt;entry&amp;gt; &amp;lt;entry&amp;gt; ... &amp;lt;entry&amp;gt; &amp;lt;zlend&amp;gt;
+ 
+  NOTE: all fields are stored in little endian, if not specified otherwise.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;说明&lt;/strong&gt;&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;field&lt;/th&gt;
+      &lt;th&gt;字节数&lt;/th&gt;
+      &lt;th&gt;说明&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;zlbytes&lt;/td&gt;
+      &lt;td&gt;4bytes&lt;/td&gt;
+      &lt;td&gt;ziplist占用的字节数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;zltail&lt;/td&gt;
+      &lt;td&gt;4bytes&lt;/td&gt;
+      &lt;td&gt;ziplist尾节点距起始地址多少字节&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;zllen&lt;/td&gt;
+      &lt;td&gt;2bytes&lt;/td&gt;
+      &lt;td&gt;ziplist包含的节点数量，当节点数量超出其表示范围时节点数量需遍历才能知道&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;entry&lt;/td&gt;
+      &lt;td&gt;不定&lt;/td&gt;
+      &lt;td&gt;ziplist包含的各个节点，其长度由其内容决定&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;zlend&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;标识ziplist末端，固定值:0xFF(十进制255)&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;h4 id=&quot;62-节点&quot;&gt;6.2 节点&lt;/h4&gt;
+&lt;p&gt;每个ziplist的节点可以保存一个字节数组或者一个整数数值&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &amp;lt;prevlen&amp;gt; &amp;lt;encoding&amp;gt; &amp;lt;entry-data&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;prevlen&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;表示前一个节点长度(byte),自身长度分两种情况：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;1字节 前一个节点长度小于254bytes,则只占一字节&lt;/li&gt;
+  &lt;li&gt;5字节 前一个节点长度不小于254,占5字节.第一字节置254(0xFE)作为标识，余下4字节来表示长度&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;encoding&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;记录entry-data属性保存的数据类型以及长度,自身长度分两种情况:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;1,2或者5字节 值的最高位为00,01或者10.此时entry-data保存着字节数组,长度由encoding除去最高2位后的其他位记录&lt;/li&gt;
+  &lt;li&gt;1字节 最高位以11开头.此时entry-data保存着整数值&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;字节数组编码&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;encoding&lt;/th&gt;
+      &lt;th&gt;编码长度&lt;/th&gt;
+      &lt;th&gt;entry-data属性保存的值&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;00xxxxx&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;长度&amp;lt;=2^6的字节数组&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;01xxxxxx xxxxxxxx&lt;/td&gt;
+      &lt;td&gt;2bytes&lt;/td&gt;
+      &lt;td&gt;长度&amp;lt;= 2^14的字节数组&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11xxxxxx . . . .&lt;/td&gt;
+      &lt;td&gt;5bytes&lt;/td&gt;
+      &lt;td&gt;长度&amp;lt;= 2^46的字节数组&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;整数编码&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;encoding&lt;/th&gt;
+      &lt;th&gt;编码长度&lt;/th&gt;
+      &lt;th&gt;entry-data属性保存的值&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11000000&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;int16_t类型的整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11010000&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;int32_t类型的整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11100000&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;int64_t类型的整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11110000&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;24位有符号整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;11111110&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;8位有符号整数&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;1111xxxx&lt;/td&gt;
+      &lt;td&gt;1byte&lt;/td&gt;
+      &lt;td&gt;此时无需entry-data属性，用xxxx来表示0 - 12&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;&lt;em&gt;说明&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;1111xxxx时，后4位不能为0000, 1110, 1111.前两个已在其他encoding中使用,最后一个为ziplist的结束标识,故只能0001~1101，又因数值从0开始故又在其基础上减1&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;entry-data&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;保存节点的值，字节数组或者整数，由encoding决定&lt;/p&gt;
+
+&lt;h4 id=&quot;63-连锁更新&quot;&gt;6.3 连锁更新&lt;/h4&gt;
+&lt;p&gt;当一系列略小于254bytes的节点前出现一个大于254bytes的节点后，使得后续节点连续扩展prevlen为5bytes&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ol&gt;
+    &lt;li&gt;插入大节点&lt;/li&gt;
+    &lt;li&gt;删除节点与大节点之间的节点，使得小节点前出现了大节&lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;em&gt;图示&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/redis/redis-ziplist-chain-update.png&quot; alt=&quot;chain-extend&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;7-快速列表quicklist&quot;&gt;7 快速列表(quicklist)&lt;/h3&gt;
+&lt;p&gt;多个quicklistNode结构组成一个双向链表，每个节点指向一个ziplist
+quicklist结构再持有双向链表的头、尾&lt;/p&gt;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// quicklist.h&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// quicklist is a 40 byte struct (on 64-bit systems) describing a quicklist.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 'count' is the number of total entries.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 'len' is the number of quicklist nodes.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 'compress' is: -1 if compression disabled, otherwise it's the number&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// of quicklistNodes to leave uncompressed at ends of quicklist.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;//  'fill' is the user-requested (or default) fill factor.&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;quicklist&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;quicklistNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;head&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;quicklistNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tail&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;        &lt;span class=&quot;cm&quot;&gt;/* total count of all entries in all ziplists */&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;          &lt;span class=&quot;cm&quot;&gt;/* number of quicklistNodes */&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 对应list-max-ziplist-size配置项&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// specify the number of entries for per list node&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 负数(-1~-5)标识fixed maximun size&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 整数表示ziplist中entry的个数&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fill&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;              &lt;span class=&quot;cm&quot;&gt;/* fill factor for individual nodes */&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 对应list-compress-depth配置项&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 压缩深度，0表示不压缩，1表示两端各一个节点不压缩&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 依此类推&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compress&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* depth of end nodes not to compress;0=off */&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;quicklist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// quicklistNode is a 32 byte struct describing a ziplist for a quicklist.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// We use bit fields keep the quicklistNode at 32 bytes.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// count: 16 bits, max 65536 (max zl bytes is 65k, so max count actually &amp;lt; 32k).&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// encoding: 2 bits, RAW=1, LZF=2.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// container: 2 bits, NONE=1, ZIPLIST=2.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// recompress: 1 bit, bool, true if node is temporarry decompressed for usage.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// attempted_compress: 1 bit, boolean, used for verifying during testing.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;//  extra: 10 bits, free for future use; pads out the remainder of 32 bits   &lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;quicklistNode&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;quicklistNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;prev&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;quicklistNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;zl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sz&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;             &lt;span class=&quot;cm&quot;&gt;/* ziplist size in bytes */&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;     &lt;span class=&quot;cm&quot;&gt;/* count of items in ziplist */&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 压缩编码&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;encoding&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;   &lt;span class=&quot;cm&quot;&gt;/* RAW==1 or LZF==2 */&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 是否采用ziplist结构保存数据&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;container&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;  &lt;span class=&quot;cm&quot;&gt;/* NONE==1 or ZIPLIST==2 */&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 标记节点是否被压缩过&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;recompress&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* was this node previous compressed? */&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;attempted_compress&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* node can't compress; too small */&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extra&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* more bits to steal for future usage */&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;quicklistNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// quicklistLZF is a 4+N byte struct holding 'sz' followed by 'compressed'.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 'sz' is byte length of 'compressed' field.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 'compressed' is LZF data with total (compressed) length 'sz'&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// NOTE: uncompressed length is stored in quicklistNode-&amp;gt;sz.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// When quicklistNode-&amp;gt;zl is compressed, node-&amp;gt;zl points to a quicklistLZF &lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 压缩过的ziplist结构,采用lzf压缩算法&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;quicklistLZF&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sz&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* LZF size in bytes*/&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compressed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;quicklistLZF&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集 https://blog.csdn.net/men_wen/article/details/70229375 源码版本:5.0.3</summary></entry><entry><title type="html">Redis-概要</title><link href="/redis/2019/03/17/redis-summary.html" rel="alternate" type="text/html" title="Redis-概要" /><published>2019-03-17T00:00:00+08:00</published><updated>2019-03-17T00:00:00+08:00</updated><id>/redis/2019/03/17/redis-summary</id><content type="html" xml:base="/redis/2019/03/17/redis-summary.html">&lt;h3 id=&quot;1思维导图&quot;&gt;1.思维导图&lt;/h3&gt;
 &lt;p&gt;&lt;strong&gt;待完善&lt;/strong&gt;
-&lt;img src=&quot;/assets/redis-xmind.png&quot; alt=&quot;xmind&quot; /&gt;&lt;/p&gt;</content><author><name></name></author><summary type="html">1.思维导图 待完善</summary></entry></feed>
+&lt;img src=&quot;/assets/redis/redis-xmind.png&quot; alt=&quot;xmind&quot; /&gt;&lt;/p&gt;</content><author><name></name></author><summary type="html">1.思维导图 待完善</summary></entry></feed>
