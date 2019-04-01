@@ -184,11 +184,67 @@ list-compress-depth</p>
 <p>编码方式:ziplist, hashtable<br />
 <strong>ziplist</strong>编码时，相邻的两个entry一个为key，一个为value</p>
 
-<p><strong>相关配置</strong></p>
+<p><strong>编码转换</strong></p>
 <blockquote>
-  <p>hash-max-ziplist-entries<br />
-hash-max-ziplist-value</p>
+  <ul>
+    <li>相关配置
+同时满足如下两个条件时使用ziplist编码
+hash-max-ziplist-entries // 键值对数量<br />
+hash-max-ziplist-value  //  键和值的字符串长度(byte)</li>
+  </ul>
 </blockquote>
+
+<h3 id="15-集合对象">1.5 集合对象</h3>
+<p>编码方式：intset, hashtable<br />
+<strong>hashtable</strong>编码时，使用字典作为底层实现。字典的键为一个字符串对象，
+包含了一个集合元素，字典的值全部设置为NULL</p>
+
+<p><strong>编码转换</strong></p>
+<blockquote>
+  <ul>
+    <li>相关配置
+set-max-intset-entries<br />
+所有元素都是整数值，且个数不超过上述配置个数时采用intset编码</li>
+  </ul>
+</blockquote>
+
+<h3 id="16-有序集合对象">1.6 有序集合对象</h3>
+<p>编码方式：ziplist, skiplist<br />
+<strong>ziplist</strong>编码<br />
+相邻的两个entry一个为数据，一个为分值<br />
+<strong>skiplist</strong>编码<br />
+此时zset结构中同时包含一个字典和一个跳跃表</p>
+<ul>
+  <li>跳跃表按分值从小到大保存所有集合元素，每个跳跃表节点保存一个元素</li>
+  <li>字典保存了一个从成员到分值的映射<br />
+跳跃表和字典通过指针共享相同的元素和分值</li>
+</ul>
+
+<p><strong>编码转换</strong></p>
+<blockquote>
+  <p>*相关配置<br />
+zset-max-ziplist-entries<br />
+zset-max-ziplist-value<br />
+相关值同时小于上述配置时采用ziplist编码</p>
+</blockquote>
+
+<h3 id="17-内存回收">1.7 内存回收</h3>
+<p>redis在其对象系统中采用引用计数实现内存回收</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// server.h</span>
+<span class="n">truct</span> <span class="n">redisObject</span> <span class="p">{</span>
+    <span class="c1">// ...</span>
+    <span class="c1">// 引用计数</span>
+    <span class="kt">int</span> <span class="n">refcount</span><span class="p">;</span>
+    <span class="c1">// ...</span>
+<span class="p">}</span> <span class="n">robj</span><span class="p">;</span>
+
+</code></pre></div></div>
+
+<h3 id="18-对象共享">1.8 对象共享</h3>
+<p>使用指针指向共享的对象，同时调整共享对象的引用计数值<br />
+redis初始化服务器时，创建0-9999共一万个字符串对象<br />
+<strong>考虑到对象对比的耗时，redis只对包含整数值的字符串对象进行共享</strong><br />
+// server.h OBJ_SHARED_INTEGERS常量</p>
 
 
   </div><a class="u-url" href="/redis/2019/03/20/redis-object.html" hidden></a>
