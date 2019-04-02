@@ -15,7 +15,7 @@
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2019-03-20T00:00:00+08:00" />
 <script type="application/ld+json">
-{"description":"Reference 《Redis设计与实现》 Redis设计与实现图片集 源码版本:5.0.3","mainEntityOfPage":{"@type":"WebPage","@id":"/redis/2019/03/20/redis-object.html"},"@type":"BlogPosting","url":"/redis/2019/03/20/redis-object.html","headline":"Redis-对象","dateModified":"2019-03-20T00:00:00+08:00","datePublished":"2019-03-20T00:00:00+08:00","@context":"https://schema.org"}</script>
+{"description":"Reference 《Redis设计与实现》 Redis设计与实现图片集 源码版本:5.0.3","@type":"BlogPosting","url":"/redis/2019/03/20/redis-object.html","headline":"Redis-对象","dateModified":"2019-03-20T00:00:00+08:00","datePublished":"2019-03-20T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"/redis/2019/03/20/redis-object.html"},"@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="彭晨的博客" /></head>
 <body><header class="site-header" role="banner">
@@ -71,9 +71,11 @@
 <span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisObject</span> <span class="p">{</span>
     <span class="kt">unsigned</span> <span class="n">type</span><span class="o">:</span><span class="mi">4</span><span class="p">;</span><span class="c1">// 类型</span>
     <span class="kt">unsigned</span> <span class="n">encoding</span><span class="o">:</span><span class="mi">4</span><span class="p">;</span> <span class="c1">// 编码</span>
+    <span class="kt">unsigned</span> <span class="n">lru</span><span class="o">:</span><span class="n">LRU_BITS</span><span class="p">;</span> <span class="cm">/* LRU time (relative to global lru_clock) or
+                            * LFU data (least significant 8 bits frequency
+                            * and most significant 16 bits access time). */</span>
+    <span class="kt">int</span> <span class="n">refcount</span><span class="p">;</span> <span class="c1">// 引用计数</span>
     <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span> <span class="c1">// 指向底层实现数据结构的指针</span>
-    
-    <span class="c1">// ...    </span>
 <span class="p">}</span> <span class="n">robj</span><span class="p">;</span>
 </code></pre></div></div>
 
@@ -245,6 +247,12 @@ zset-max-ziplist-value<br />
 redis初始化服务器时，创建0-9999共一万个字符串对象<br />
 <strong>考虑到对象对比的耗时，redis只对包含整数值的字符串对象进行共享</strong><br />
 // server.h OBJ_SHARED_INTEGERS常量</p>
+
+<h3 id="19-对象空转时长">1.9 对象空转时长</h3>
+<p>redisObject结构中lru属性记录量对象最后以此被命令程序访问的时间，可以作为内存回收的依据</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&gt; set a 100
+&gt; object idletime a
+</code></pre></div></div>
 
 
   </div><a class="u-url" href="/redis/2019/03/20/redis-object.html" hidden></a>

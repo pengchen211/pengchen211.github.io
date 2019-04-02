@@ -1,4 +1,39 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-04-01T17:17:32+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis-对象</title><link href="/redis/2019/03/20/redis-object.html" rel="alternate" type="text/html" title="Redis-对象" /><published>2019-03-20T00:00:00+08:00</published><updated>2019-03-20T00:00:00+08:00</updated><id>/redis/2019/03/20/redis-object</id><content type="html" xml:base="/redis/2019/03/20/redis-object.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2019-04-02T20:32:53+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Redis-数据库</title><link href="/redis/2019/04/02/redis-db.html" rel="alternate" type="text/html" title="Redis-数据库" /><published>2019-04-02T00:00:00+08:00</published><updated>2019-04-02T00:00:00+08:00</updated><id>/redis/2019/04/02/redis-db</id><content type="html" xml:base="/redis/2019/04/02/redis-db.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
+    &lt;li&gt;&lt;a href=&quot;http://1e-gallery.redisbook.com/index.html&quot;&gt;Redis设计与实现图片集&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;源码版本:5.0.3&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;1-概述&quot;&gt;1. 概述&lt;/h3&gt;
+&lt;p&gt;redis服务器所有的数据库保存在服务器状态结构server.h/redisServer结构的db数组中,
+db数组每项都是一个server.h/redisDb结构，每个redisDb结构代表一个数据库&lt;/p&gt;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// server.h&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;redisServer&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;redisDb&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;db&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 初始化服务器时程序根据服务器状态的dbnum属性&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 来居诶的嗯创建多少个数据库&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 相关配置项: redis.conf -&amp;gt; databases，默认16&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbnum&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Total number of configured DBs */&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;2-切换数据库&quot;&gt;2. 切换数据库&lt;/h3&gt;
+&lt;p&gt;默认情况下redis客户端使用0号数据库，可以通过select命令进行切换。&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;127.0.0.1:6379&amp;gt; set a 100
+OK
+127.0.0.1:6379&amp;gt; get a
+&quot;100&quot;
+127.0.0.1:6379&amp;gt; select 1
+OK
+127.0.0.1:6379[1]&amp;gt; get a
+(nil)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集 源码版本:5.0.3</summary></entry><entry><title type="html">Redis-对象</title><link href="/redis/2019/03/20/redis-object.html" rel="alternate" type="text/html" title="Redis-对象" /><published>2019-03-20T00:00:00+08:00</published><updated>2019-03-20T00:00:00+08:00</updated><id>/redis/2019/03/20/redis-object</id><content type="html" xml:base="/redis/2019/03/20/redis-object.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
 &lt;blockquote&gt;
   &lt;ul&gt;
     &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
@@ -24,9 +59,11 @@
 &lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;redisObject&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;// 类型&lt;/span&gt;
     &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;encoding&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// 编码&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;lru&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LRU_BITS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* LRU time (relative to global lru_clock) or
+                            * LFU data (least significant 8 bits frequency
+                            * and most significant 16 bits access time). */&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;refcount&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// 引用计数&lt;/span&gt;
     &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// 指向底层实现数据结构的指针&lt;/span&gt;
-    
-    &lt;span class=&quot;c1&quot;&gt;// ...    &lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;robj&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
@@ -197,7 +234,13 @@ zset-max-ziplist-value&lt;br /&gt;
 &lt;p&gt;使用指针指向共享的对象，同时调整共享对象的引用计数值&lt;br /&gt;
 redis初始化服务器时，创建0-9999共一万个字符串对象&lt;br /&gt;
 &lt;strong&gt;考虑到对象对比的耗时，redis只对包含整数值的字符串对象进行共享&lt;/strong&gt;&lt;br /&gt;
-// server.h OBJ_SHARED_INTEGERS常量&lt;/p&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集 源码版本:5.0.3</summary></entry><entry><title type="html">Redis-数据结构</title><link href="/redis/2019/03/18/redis-datastructure.html" rel="alternate" type="text/html" title="Redis-数据结构" /><published>2019-03-18T00:00:00+08:00</published><updated>2019-03-18T00:00:00+08:00</updated><id>/redis/2019/03/18/redis-datastructure</id><content type="html" xml:base="/redis/2019/03/18/redis-datastructure.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+// server.h OBJ_SHARED_INTEGERS常量&lt;/p&gt;
+
+&lt;h3 id=&quot;19-对象空转时长&quot;&gt;1.9 对象空转时长&lt;/h3&gt;
+&lt;p&gt;redisObject结构中lru属性记录量对象最后以此被命令程序访问的时间，可以作为内存回收的依据&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&amp;gt; set a 100
+&amp;gt; object idletime a
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name></name></author><summary type="html">Reference 《Redis设计与实现》 Redis设计与实现图片集 源码版本:5.0.3</summary></entry><entry><title type="html">Redis-数据结构</title><link href="/redis/2019/03/18/redis-datastructure.html" rel="alternate" type="text/html" title="Redis-数据结构" /><published>2019-03-18T00:00:00+08:00</published><updated>2019-03-18T00:00:00+08:00</updated><id>/redis/2019/03/18/redis-datastructure</id><content type="html" xml:base="/redis/2019/03/18/redis-datastructure.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
 &lt;blockquote&gt;
   &lt;ul&gt;
     &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
