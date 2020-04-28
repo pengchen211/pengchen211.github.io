@@ -3,9 +3,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
-<title>Elasticsearch-2.3.4-基于HDFS的Snap/Restore | 彭晨的博客</title>
+<title>Elasticsearch-2.3.4-基于HDFS的Snapshot/Restore | 彭晨的博客</title>
 <meta name="generator" content="Jekyll v3.8.5" />
-<meta property="og:title" content="Elasticsearch-2.3.4-基于HDFS的Snap/Restore" />
+<meta property="og:title" content="Elasticsearch-2.3.4-基于HDFS的Snapshot/Restore" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，不保证其他版本请参考es官方文档。" />
 <meta property="og:description" content="1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，不保证其他版本请参考es官方文档。" />
@@ -15,7 +15,7 @@
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2020-04-20T00:00:00+08:00" />
 <script type="application/ld+json">
-{"description":"1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，不保证其他版本请参考es官方文档。","mainEntityOfPage":{"@type":"WebPage","@id":"/elasticsearch/2020/04/20/es-snapshot_restore.html"},"@type":"BlogPosting","url":"/elasticsearch/2020/04/20/es-snapshot_restore.html","headline":"Elasticsearch-2.3.4-基于HDFS的Snap/Restore","dateModified":"2020-04-20T00:00:00+08:00","datePublished":"2020-04-20T00:00:00+08:00","@context":"https://schema.org"}</script>
+{"description":"1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，不保证其他版本请参考es官方文档。","mainEntityOfPage":{"@type":"WebPage","@id":"/elasticsearch/2020/04/20/es-snapshot_restore.html"},"@type":"BlogPosting","url":"/elasticsearch/2020/04/20/es-snapshot_restore.html","headline":"Elasticsearch-2.3.4-基于HDFS的Snapshot/Restore","dateModified":"2020-04-20T00:00:00+08:00","datePublished":"2020-04-20T00:00:00+08:00","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="彭晨的博客" /></head>
 <body><header class="site-header" role="banner">
@@ -38,7 +38,7 @@
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">Elasticsearch-2.3.4-基于HDFS的Snap/Restore</h1>
+    <h1 class="post-title p-name" itemprop="name headline">Elasticsearch-2.3.4-基于HDFS的Snapshot/Restore</h1>
     <p class="post-meta">
       <time class="dt-published" datetime="2020-04-20T00:00:00+08:00" itemprop="datePublished">Apr 20, 2020
       </time></p>
