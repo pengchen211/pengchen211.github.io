@@ -7,15 +7,15 @@
 <meta name="generator" content="Jekyll v3.8.5" />
 <meta property="og:title" content="Elasticsearch-2.3.4基于HDFS的Snapshot/Restore" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="1. 概述 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 参考文档 1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，其他版本请参考es官方文档。 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 官网下载地址 为简单起见，示例全部采用默认配置，直接将程序包解压运行 ./bin/elasticsearch -d -p pid # 后台运行，将pid输出到pid文件 验证 $ curl localhost:9200 2.1.2. repository-hdfs插件安装 若采用hdfs作为快照存储介质，需要额外安装插件。2.3.4版本的插件较为特殊，直接按照官方方式进行安装后执行snapshot时会出现依赖相关问题，此处不进行深入分析。直接采用第三方仓库提供的插件。 下载地址 安装 $ ./bin/plugin install file:///path/to/elasticsearch-repository-hdfs-2.3.4.BUILD-20160731.045929-24-hadoop2.zip 验证 查看已安装插件列表 $ ./bin/plugin list 2.1.3. 造数 为了后续验证，在es中新建索引并添加数据。 #! /bin/bash # 创建名为test-index的索引 curl -XPUT &#39;http://localhost:9200/test-index/&#39; # 插入若干条数据 for i in {1..1001} do curl -XPOST &#39;http://localhost:9200/test-index/doc&#39; -d &#39;{&quot;name&quot;:&quot;tom&quot;}&#39; done 目前es状态通过head查看如下： 2.2. hadoop-2.7.0 2.2.1. 下载 官网下载地址 2.2.2. 安装 为了简单起见，示例采用伪分布式安装(pseudo-distributed)，将程序包解压，并修改如下配置文件： etc/hadoop/hadoop-env.sh # 设置java路径 export JAVA_HOME=/path/to/java etc/hadoop/core-site.xml" />
-<meta property="og:description" content="1. 概述 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 参考文档 1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，其他版本请参考es官方文档。 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 官网下载地址 为简单起见，示例全部采用默认配置，直接将程序包解压运行 ./bin/elasticsearch -d -p pid # 后台运行，将pid输出到pid文件 验证 $ curl localhost:9200 2.1.2. repository-hdfs插件安装 若采用hdfs作为快照存储介质，需要额外安装插件。2.3.4版本的插件较为特殊，直接按照官方方式进行安装后执行snapshot时会出现依赖相关问题，此处不进行深入分析。直接采用第三方仓库提供的插件。 下载地址 安装 $ ./bin/plugin install file:///path/to/elasticsearch-repository-hdfs-2.3.4.BUILD-20160731.045929-24-hadoop2.zip 验证 查看已安装插件列表 $ ./bin/plugin list 2.1.3. 造数 为了后续验证，在es中新建索引并添加数据。 #! /bin/bash # 创建名为test-index的索引 curl -XPUT &#39;http://localhost:9200/test-index/&#39; # 插入若干条数据 for i in {1..1001} do curl -XPOST &#39;http://localhost:9200/test-index/doc&#39; -d &#39;{&quot;name&quot;:&quot;tom&quot;}&#39; done 目前es状态通过head查看如下： 2.2. hadoop-2.7.0 2.2.1. 下载 官网下载地址 2.2.2. 安装 为了简单起见，示例采用伪分布式安装(pseudo-distributed)，将程序包解压，并修改如下配置文件： etc/hadoop/hadoop-env.sh # 设置java路径 export JAVA_HOME=/path/to/java etc/hadoop/core-site.xml" />
+<meta name="description" content="1. 概述 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 参考文档 1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，其他版本请参考es官方文档。 2. 环境准备" />
+<meta property="og:description" content="1. 概述 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 参考文档 1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，其他版本请参考es官方文档。 2. 环境准备" />
 <link rel="canonical" href="/elasticsearch/2020/04/28/es-snapshot_restore.html" />
 <meta property="og:url" content="/elasticsearch/2020/04/28/es-snapshot_restore.html" />
 <meta property="og:site_name" content="彭晨的博客" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2020-04-28T00:00:00+08:00" />
 <script type="application/ld+json">
-{"description":"1. 概述 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 参考文档 1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，其他版本请参考es官方文档。 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 官网下载地址 为简单起见，示例全部采用默认配置，直接将程序包解压运行 ./bin/elasticsearch -d -p pid # 后台运行，将pid输出到pid文件 验证 $ curl localhost:9200 2.1.2. repository-hdfs插件安装 若采用hdfs作为快照存储介质，需要额外安装插件。2.3.4版本的插件较为特殊，直接按照官方方式进行安装后执行snapshot时会出现依赖相关问题，此处不进行深入分析。直接采用第三方仓库提供的插件。 下载地址 安装 $ ./bin/plugin install file:///path/to/elasticsearch-repository-hdfs-2.3.4.BUILD-20160731.045929-24-hadoop2.zip 验证 查看已安装插件列表 $ ./bin/plugin list 2.1.3. 造数 为了后续验证，在es中新建索引并添加数据。 #! /bin/bash # 创建名为test-index的索引 curl -XPUT &#39;http://localhost:9200/test-index/&#39; # 插入若干条数据 for i in {1..1001} do curl -XPOST &#39;http://localhost:9200/test-index/doc&#39; -d &#39;{&quot;name&quot;:&quot;tom&quot;}&#39; done 目前es状态通过head查看如下： 2.2. hadoop-2.7.0 2.2.1. 下载 官网下载地址 2.2.2. 安装 为了简单起见，示例采用伪分布式安装(pseudo-distributed)，将程序包解压，并修改如下配置文件： etc/hadoop/hadoop-env.sh # 设置java路径 export JAVA_HOME=/path/to/java etc/hadoop/core-site.xml","mainEntityOfPage":{"@type":"WebPage","@id":"/elasticsearch/2020/04/28/es-snapshot_restore.html"},"@type":"BlogPosting","url":"/elasticsearch/2020/04/28/es-snapshot_restore.html","headline":"Elasticsearch-2.3.4基于HDFS的Snapshot/Restore","dateModified":"2020-04-28T00:00:00+08:00","datePublished":"2020-04-28T00:00:00+08:00","@context":"https://schema.org"}</script>
+{"description":"1. 概述 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 参考文档 1. 概述 最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。 说明 ：本文仅适用于es2.3.4与hadoop2.7.0，其他版本请参考es官方文档。 2. 环境准备","mainEntityOfPage":{"@type":"WebPage","@id":"/elasticsearch/2020/04/28/es-snapshot_restore.html"},"@type":"BlogPosting","url":"/elasticsearch/2020/04/28/es-snapshot_restore.html","headline":"Elasticsearch-2.3.4基于HDFS的Snapshot/Restore","dateModified":"2020-04-28T00:00:00+08:00","datePublished":"2020-04-28T00:00:00+08:00","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="彭晨的博客" /></head>
 <body><header class="site-header" role="banner">
@@ -76,8 +76,11 @@
 </ul>
 
 <h1 id="2-环境准备">2. 环境准备</h1>
+
 <h2 id="21-elasticsearch-234">2.1. elasticsearch-2.3.4</h2>
+
 <h3 id="211-elasticsearch安装">2.1.1. elasticsearch安装</h3>
+
 <p><a href="https://www.elastic.co/cn/downloads/past-releases/elasticsearch-2-3-4">官网下载地址</a></p>
 
 <p>为简单起见，示例全部采用默认配置，直接将程序包解压运行</p>
@@ -89,11 +92,15 @@
 </code></pre></div>    </div>
     <p><img src="/assets/elasticsearch/es-start-success.png" alt="es-start-success.png" /></p>
     <h3 id="212-repository-hdfs插件安装">2.1.2. repository-hdfs插件安装</h3>
-    <p>若采用hdfs作为快照存储介质，需要额外安装插件。2.3.4版本的插件较为特殊，直接按照官方方式进行安装后执行snapshot时会出现依赖相关问题，此处不进行深入分析。直接采用第三方仓库提供的插件。
-<a href="https://oss.sonatype.org/content/repositories/snapshots/org/elasticsearch/elasticsearch-repository-hdfs/2.3.4.BUILD-SNAPSHOT/">下载地址</a></p>
   </li>
+</ul>
+
+<p>若采用hdfs作为快照存储介质，需要额外安装插件。2.3.4版本的插件较为特殊，直接按照官方方式进行安装后执行snapshot时会出现依赖相关问题，此处不进行深入分析。直接采用第三方仓库提供的插件(<a href="https://oss.sonatype.org/content/repositories/snapshots/org/elasticsearch/elasticsearch-repository-hdfs/2.3.4.BUILD-SNAPSHOT/">下载地址</a>)。</p>
+
+<p><strong>注意</strong>: 示例采用elasticsearch-repository-hdfs-2.3.4.BUILD-20160801.050226-25-hadoop2.zip，其他版本不保证可用。</p>
+<ul>
   <li>安装
-    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./bin/plugin install file:///path/to/elasticsearch-repository-hdfs-2.3.4.BUILD-20160731.045929-24-hadoop2.zip
+    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./bin/plugin install file:///path/to/elasticsearch-repository-hdfs-2.3.4.BUILD-20160801.050226-25-hadoop2.zip
 </code></pre></div>    </div>
   </li>
   <li>验证
@@ -101,20 +108,21 @@
     <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./bin/plugin list
 </code></pre></div>    </div>
     <h3 id="213-造数">2.1.3. 造数</h3>
-    <p>为了后续验证，在es中新建索引并添加数据。</p>
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#! /bin/bash</span>
+  </li>
+</ul>
+
+<p>为了后续验证，在es中新建索引并添加数据。</p>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#! /bin/bash</span>
 <span class="c"># 创建名为test-index的索引</span>
 curl <span class="nt">-XPUT</span> <span class="s1">'http://localhost:9200/test-index/'</span> 
 <span class="c"># 插入若干条数据</span>
 <span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>1..1001<span class="o">}</span>
 <span class="k">do
-</span>curl <span class="nt">-XPOST</span> <span class="s1">'http://localhost:9200/test-index/doc'</span> <span class="nt">-d</span> <span class="s1">'{"name":"tom"}'</span>
+  </span>curl <span class="nt">-XPOST</span> <span class="s1">'http://localhost:9200/test-index/doc'</span> <span class="nt">-d</span> <span class="s1">'{"name":"tom"}'</span>
 <span class="k">done</span>
-</code></pre></div>    </div>
-    <p>目前es状态通过head查看如下：
+</code></pre></div></div>
+<p>目前es状态通过head查看如下：
 <img src="/assets/elasticsearch/es-data.png" alt="es-data.png" /></p>
-  </li>
-</ul>
 
 <h2 id="22-hadoop-270">2.2. hadoop-2.7.0</h2>
 <h3 id="221-下载">2.2.1. 下载</h3>
