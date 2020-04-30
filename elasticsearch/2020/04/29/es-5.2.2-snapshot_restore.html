@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
+<title>Elasticsearch-5.2.2基于HDFS的Snapshot/Restore | 彭晨的博客</title>
+<meta name="generator" content="Jekyll v3.8.5" />
+<meta property="og:title" content="Elasticsearch-5.2.2基于HDFS的Snapshot/Restore" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception" />
+<meta property="og:description" content="0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception" />
+<link rel="canonical" href="/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html" />
+<meta property="og:url" content="/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html" />
+<meta property="og:site_name" content="彭晨的博客" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2020-04-29T00:00:00+08:00" />
+<script type="application/ld+json">
+{"description":"0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception","mainEntityOfPage":{"@type":"WebPage","@id":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html"},"@type":"BlogPosting","url":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html","headline":"Elasticsearch-5.2.2基于HDFS的Snapshot/Restore","dateModified":"2020-04-29T00:00:00+08:00","datePublished":"2020-04-29T00:00:00+08:00","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="彭晨的博客" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">彭晨的博客</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About</a><a class="page-link" href="/tmp.html">Elasticsearch-2.3.4基于HDFS的Snapshot/Restore</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Elasticsearch-5.2.2基于HDFS的Snapshot/Restore</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2020-04-29T00:00:00+08:00" itemprop="datePublished">Apr 29, 2020
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <ul>
+  <li><a href="#0-%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3">0. 参考文档</a></li>
+  <li><a href="#1-%E6%A6%82%E8%BF%B0">1. 概述</a></li>
+  <li><a href="#2-%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87">2. 环境准备</a>
+    <ul>
+      <li><a href="#21-elasticsearch-522">2.1. elasticsearch-5.2.2</a>
+        <ul>
+          <li><a href="#211-elasticsearch%E5%AE%89%E8%A3%85">2.1.1. elasticsearch安装</a></li>
+          <li><a href="#212-repository-hdfs%E6%8F%92%E4%BB%B6%E5%AE%89%E8%A3%85">2.1.2. repository-hdfs插件安装</a></li>
+          <li><a href="#213-%E9%80%A0%E6%95%B0">2.1.3. 造数</a></li>
+        </ul>
+      </li>
+      <li><a href="#22-hadoop-270">2.2. hadoop-2.7.0</a>
+        <ul>
+          <li><a href="#221-%E4%B8%8B%E8%BD%BD">2.2.1. 下载</a></li>
+          <li><a href="#222-%E5%AE%89%E8%A3%85">2.2.2. 安装</a></li>
+          <li><a href="#223-%E9%85%8D%E7%BD%AEssh%E5%85%8D%E5%AF%86">2.2.3. 配置ssh免密</a></li>
+          <li><a href="#224-%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F">2.2.4. 格式化文件系统</a></li>
+          <li><a href="#225-%E5%90%AF%E5%8A%A8hdfs">2.2.5 启动HDFS</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#3-%E6%B3%A8%E5%86%8C%E4%BB%93%E5%BA%93">3. 注册仓库</a></li>
+  <li><a href="#4-%E5%88%9B%E5%BB%BA%E5%BF%AB%E7%85%A7">4. 创建快照</a>
+    <ul>
+      <li><a href="#41-access_control_exception">4.1. access_control_exception</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="0-参考文档">0. 参考文档</h1>
+<p><a href="https://www.elastic.co/guide/en/elasticsearch/reference/5.2/modules-snapshots.html">Elasticsearch Reference[5.2.2] Snapshot And Restore</a><br />
+<a href="https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/repository-hdfs.html">HDFS Repository Plugin</a></p>
+
+<h1 id="1-概述">1. 概述</h1>
+<p>最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。<br />
+<strong>说明</strong> ：本文仅适用于es5.2.2与hadoop2.7.0，其他版本请参考es官方文档。</p>
+
+<h1 id="2-环境准备">2. 环境准备</h1>
+
+<h2 id="21-elasticsearch-522">2.1. elasticsearch-5.2.2</h2>
+
+<h3 id="211-elasticsearch安装">2.1.1. elasticsearch安装</h3>
+
+<p><a href="https://www.elastic.co/cn/downloads/past-releases/elasticsearch-5-2-2">Elasticsearch5.2.2官网下载地址</a></p>
+
+<p>将程序包解压并添加如下配置便于用head查看es信息，其他信息保持不变</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http.cors.enabled: true
+http.cors.allow-origin: "*"
+</code></pre></div></div>
+
+<ul>
+  <li>启动es</li>
+</ul>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./bin/elasticsearch -d -p pid # 后台运行，将pid输出到pid文件  
+</code></pre></div></div>
+<ul>
+  <li>验证</li>
+</ul>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ curl localhost:9200
+
+{
+  "name" : "ODQxF0o",
+  "cluster_name" : "elasticsearch",
+  "cluster_uuid" : "eBH2lQZGQnKa5ssUXzUEig",
+  "version" : {
+    "number" : "5.2.2",
+    "build_hash" : "f9d9b74",
+    "build_date" : "2017-02-24T17:26:45.835Z",
+    "build_snapshot" : false,
+    "lucene_version" : "6.4.1"
+  },
+  "tagline" : "You Know, for Search"
+}
+</code></pre></div></div>
+
+<h3 id="212-repository-hdfs插件安装">2.1.2. repository-hdfs插件安装</h3>
+
+<p>若采用hdfs作为快照存储介质，需要额外安装插件。
+(<a href="./bin/elasticsearch-plugin install file:///Users/pengchen/softwares/repository-hdfs-5.2.2.zip">插件下载地址</a>)。</p>
+
+<ul>
+  <li>安装</li>
+</ul>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./bin/elasticsearch-plugin install file:///path/to/repository-hdfs-5.2.2.zip
+</code></pre></div></div>
+<ul>
+  <li>验证</li>
+</ul>
+
+<p>查看已安装插件列表</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./bin/elasticsearch-plugin list
+</code></pre></div></div>
+
+<h3 id="213-造数">2.1.3. 造数</h3>
+
+<p>为了后续验证，在es中新建索引并添加数据。</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#! /bin/bash</span>
+<span class="c"># 创建名为test-index的索引</span>
+curl <span class="nt">-XPUT</span> <span class="s1">'http://localhost:9200/test-index/'</span> 
+<span class="c"># 插入若干条数据</span>
+<span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>1..1001<span class="o">}</span>
+<span class="k">do
+  </span>curl <span class="nt">-XPOST</span> <span class="s1">'http://localhost:9200/test-index/doc'</span> <span class="nt">-d</span> <span class="s1">'{"name":"tom"}'</span>
+<span class="k">done</span>
+</code></pre></div></div>
+
+<h2 id="22-hadoop-270">2.2. hadoop-2.7.0</h2>
+<h3 id="221-下载">2.2.1. 下载</h3>
+<p><a href="https://archive.apache.org/dist/hadoop/common/hadoop-2.7.0">官网下载地址</a></p>
+<h3 id="222-安装">2.2.2. 安装</h3>
+<p>为了简单起见，示例采用伪分布式安装(pseudo-distributed)，将程序包解压，并修改如下配置文件：</p>
+<ul>
+  <li>etc/hadoop/hadoop-env.sh</li>
+</ul>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code># 设置java路径
+export JAVA_HOME=/path/to/java
+</code></pre></div></div>
+<ul>
+  <li>etc/hadoop/core-site.xml</li>
+</ul>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nt">&lt;configuration&gt;</span>  
+      <span class="nt">&lt;property&gt;</span>  
+          <span class="nt">&lt;name&gt;</span>fs.defaultFS<span class="nt">&lt;/name&gt;</span>  
+          <span class="nt">&lt;value&gt;</span>hdfs://localhost:9000<span class="nt">&lt;/value&gt;</span>  
+      <span class="nt">&lt;/property&gt;</span>  
+ <span class="nt">&lt;/configuration&gt;</span>  
+</code></pre></div></div>
+<ul>
+  <li>etc/hadoop/hdfs-site.xml</li>
+</ul>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nt">&lt;configuration&gt;</span>  
+     <span class="nt">&lt;property&gt;</span>  
+         <span class="nt">&lt;name&gt;</span>dfs.replication<span class="nt">&lt;/name&gt;</span>  
+         <span class="nt">&lt;value&gt;</span>1<span class="nt">&lt;/value&gt;</span>  
+     <span class="nt">&lt;/property&gt;</span>  
+     <span class="nt">&lt;property&gt;</span>  
+        <span class="nt">&lt;name&gt;</span>dfs.name.dir<span class="nt">&lt;/name&gt;</span>  
+        <span class="nt">&lt;value&gt;</span>/tmp/hadoop/2.7.0/name<span class="nt">&lt;/value&gt;</span>  
+    <span class="nt">&lt;/property&gt;</span>  
+    <span class="nt">&lt;property&gt;</span>  
+        <span class="nt">&lt;name&gt;</span>dfs.data.dir<span class="nt">&lt;/name&gt;</span>  
+        <span class="nt">&lt;value&gt;</span>/tmp/hadoop/2.7.0/data<span class="nt">&lt;/value&gt;</span>  
+    <span class="nt">&lt;/property&gt;</span>  
+ <span class="nt">&lt;/configuration&gt;</span>  
+</code></pre></div></div>
+<h3 id="223-配置ssh免密">2.2.3. 配置ssh免密</h3>
+<p>若ssh loclhost无法登陆本机，则进行如下操作：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa  
+$ cat ~/.ssh/id_rsa.pub &gt;&gt; ~/.ssh/authorized_keys  
+$ chmod 0600 ~/.ssh/authorized_keys  
+</code></pre></div></div>
+<h3 id="224-格式化文件系统">2.2.4. 格式化文件系统</h3>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./bin/hdfs namenode -format
+</code></pre></div></div>
+
+<h3 id="225-启动hdfs">2.2.5 启动HDFS</h3>
+<ul>
+  <li>启动</li>
+</ul>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./sbin/start-dfs.sh  
+</code></pre></div></div>
+
+<ul>
+  <li>验证
+    <ol>
+      <li>通过jps命令查看相关进程是否存在</li>
+      <li>浏览器访问web ui，地址http://localhost:50070 (hadoop2默认为50070端口)</li>
+    </ol>
+  </li>
+</ul>
+
+<h1 id="3-注册仓库">3. 注册仓库</h1>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-XPUT</span> <span class="s1">'http://localhost:9200/_snapshot/hdfs_repo'</span> <span class="nt">-d</span> 
+<span class="s1">'{
+  "type": "hdfs",
+  "settings": {
+    "uri": "hdfs://localhost:9000",
+    "path": "es/hdfs_repo",
+    "max_restore_bytes_per_sec":"1mb",
+    "max_snapshot_bytes_per_sec":"1mb"
+  }
+}'</span>
+</code></pre></div></div>
+
+<p>若返回结果如下，则成功</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
+    "acknowledged": true
+}
+</code></pre></div></div>
+
+<ul>
+  <li>查看HDFS目录
+查看HDFS中是否已经添加相关目录</li>
+</ul>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./bin/hdfs dfs -ls -R /
+
+20/04/29 21:04:45 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user
+drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user/pengchen
+drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user/pengchen/es
+drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user/pengchen/es/hdfs_repo
+</code></pre></div></div>
+
+<ul>
+  <li>查看仓库信息</li>
+</ul>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ curl 'http://localhost:9200/_snapshot/_all?pretty'
+
+{
+  "hdfs_repo" : {
+    "type" : "hdfs",
+    "settings" : {
+      "path" : "es/hdfs_repo",
+      "max_restore_bytes_per_sec" : "1mb",
+      "uri" : "hdfs://localhost:9000",
+      "max_snapshot_bytes_per_sec" : "1mb"
+    }
+  }
+}
+</code></pre></div></div>
+
+<ul>
+  <li>配置说明</li>
+</ul>
+
+<p>基于HDFS的配置最常用的为示例中几个，uri和path是必不可少，余下两个是限速参数，实际生产环境中也不可或缺。
+参数详细说明以及其他参数请参考如下文档：</p>
+
+<p><a href="[https://www.elastic.co/guide/en/elasticsearch/reference/2.3/modules-snapshots.html](https://www.elastic.co/guide/en/elasticsearch/reference/2.3/modules-snapshots.html)">Snapshot And Restore</a></p>
+
+<p><a href="https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/repository-hdfs-config.html">HDFS存储配置说明</a></p>
+
+<h1 id="4-创建快照">4. 创建快照</h1>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl -XPUT 'http://localhost:9200/_snapshot/hdfs_repo/snapshot_1?wait_for_completion=false' -d \
+'{
+  "ignore_unavailable": true,
+  "include_global_state": false,
+  "partial": true 
+}'
+
+</code></pre></div></div>
+
+<h2 id="41-access_control_exception">4.1. access_control_exception</h2>
+
+<p>此时创建快照会报如下错误</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
+    "error": {
+        "root_cause": [
+            {
+                "type": "repository_exception",
+                "reason": "[hdfs_repo] could not read repository data from index blob"
+            }
+        ],
+        "type": "repository_exception",
+        "reason": "[hdfs_repo] could not read repository data from index blob",
+        "caused_by": {
+            "type": "i_o_exception",
+            "reason": "com.google.protobuf.ServiceException: java.security.AccessControlException: access denied (\"javax.security.auth.PrivateCredentialPermission\" \"org.apache.hadoop.security.Credentials\" \"read\")",
+            "caused_by": {
+                "type": "service_exception",
+                "reason": "java.security.AccessControlException: access denied (\"javax.security.auth.PrivateCredentialPermission\" \"org.apache.hadoop.security.Credentials\" \"read\")",
+                "caused_by": {
+                    "type": "access_control_exception",
+                    "reason": "access denied (\"javax.security.auth.PrivateCredentialPermission\" \"org.apache.hadoop.security.Credentials\" \"read\")"
+                }
+            }
+        }
+    },
+    "status": 500
+}
+</code></pre></div></div>
+
+<ul>
+  <li>解决方法</li>
+</ul>
+
+<p>在repository-hdfs插件的java security policy文件中添加如下内容：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code> permission javax.security.auth.PrivateCredentialPermission "org.apache.hadoop.security.Credentials * \"*\"", "read";
+</code></pre></div></div>
+
+<p>并在es jvm配置文件config/jvm.options中指定该策略文件:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>-Djava.security.policy=file:///path/to/plugins/repository-hdfs/plugin-security.policy
+</code></pre></div></div>
+
+
+  </div><a class="u-url" href="/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">彭晨的博客</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">彭晨的博客</li><li><a class="u-email" href="mailto:pengchen211@163.com">pengchen211@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>我的学习记录</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
