@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.5">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2020-04-30T08:35:35+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle>我的学习记录</subtitle><entry><title type="html">Elasticsearch-5.2.2基于HDFS的Snapshot/Restore</title><link href="/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html" rel="alternate" type="text/html" title="Elasticsearch-5.2.2基于HDFS的Snapshot/Restore" /><published>2020-04-29T00:00:00+08:00</published><updated>2020-04-29T00:00:00+08:00</updated><id>/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore</id><content type="html" xml:base="/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html">&lt;ul&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.0.0">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2020-05-04T21:47:35+08:00</updated><id>/feed.xml</id><title type="html">彭晨的博客</title><subtitle></subtitle><entry><title type="html">Elasticsearch-5.2.2基于HDFS的Snapshot/Restore</title><link href="/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html" rel="alternate" type="text/html" title="Elasticsearch-5.2.2基于HDFS的Snapshot/Restore" /><published>2020-04-29T00:00:00+08:00</published><updated>2020-04-29T00:00:00+08:00</updated><id>/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore</id><content type="html" xml:base="/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html">&lt;ul&gt;
   &lt;li&gt;&lt;a href=&quot;#0-%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3&quot;&gt;0. 参考文档&lt;/a&gt;&lt;/li&gt;
   &lt;li&gt;&lt;a href=&quot;#1-%E6%A6%82%E8%BF%B0&quot;&gt;1. 概述&lt;/a&gt;&lt;/li&gt;
   &lt;li&gt;&lt;a href=&quot;#2-%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87&quot;&gt;2. 环境准备&lt;/a&gt;
@@ -25,6 +25,15 @@
   &lt;li&gt;&lt;a href=&quot;#4-%E5%88%9B%E5%BB%BA%E5%BF%AB%E7%85%A7&quot;&gt;4. 创建快照&lt;/a&gt;
     &lt;ul&gt;
       &lt;li&gt;&lt;a href=&quot;#41-access_control_exception&quot;&gt;4.1. access_control_exception&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#42-%E6%9F%A5%E7%9C%8B%E5%BF%AB%E7%85%A7%E4%BF%A1%E6%81%AF&quot;&gt;4.2. 查看快照信息&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#43--%E5%BF%AB%E7%85%A7%E5%88%A0%E9%99%A4%E4%B8%8E%E5%81%9C%E6%AD%A2&quot;&gt;4.3. 快照删除与停止&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#5-%E5%BF%AB%E7%85%A7%E6%81%A2%E5%A4%8D&quot;&gt;5. 快照恢复&lt;/a&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#51-%E6%81%A2%E5%A4%8D&quot;&gt;5.1. 恢复&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#52-%E6%81%A2%E5%A4%8D%E8%BF%9B%E5%BA%A6%E6%9F%A5%E7%9C%8B&quot;&gt;5.2. 恢复进度查看&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#53-%E4%B8%AD%E6%AD%A2%E6%81%A2%E5%A4%8D&quot;&gt;5.3. 中止恢复&lt;/a&gt;&lt;/li&gt;
     &lt;/ul&gt;
   &lt;/li&gt;
 &lt;/ul&gt;
@@ -257,6 +266,39 @@ drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user/pengchen/es
 
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
+&lt;ul&gt;
+  &lt;li&gt;参数说明&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;参数&lt;/th&gt;
+      &lt;th&gt;说明&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;wait_for_completion&lt;/td&gt;
+      &lt;td&gt;请求立即返回还是等待创建快照完毕后再返回，若数据量较多可以设置为false&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;ignore_unavailable&lt;/td&gt;
+      &lt;td&gt;忽略创建快照时不存在的索引&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;partial&lt;/td&gt;
+      &lt;td&gt;默认情况下索引存在不可用分片时该索引的备份会失败，设置此参数为true可以备份可用的分片&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;…&lt;/td&gt;
+      &lt;td&gt;…&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;更多参数说明请参考官方文档&lt;/p&gt;
+
 &lt;h2 id=&quot;41-access_control_exception&quot;&gt;4.1. access_control_exception&lt;/h2&gt;
 
 &lt;p&gt;此时创建快照会报如下错误&lt;/p&gt;
@@ -299,181 +341,60 @@ drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user/pengchen/es
 &lt;p&gt;并在es jvm配置文件config/jvm.options中指定该策略文件:&lt;/p&gt;
 
 &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;-Djava.security.policy=file:///path/to/plugins/repository-hdfs/plugin-security.policy
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name></name></author><summary type="html">0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception</summary></entry><entry><title type="html">Elasticsearch-2.3.4基于HDFS的Snapshot/Restore</title><link href="/elasticsearch/2020/04/28/es-snapshot_restore.html" rel="alternate" type="text/html" title="Elasticsearch-2.3.4基于HDFS的Snapshot/Restore" /><published>2020-04-28T00:00:00+08:00</published><updated>2020-04-28T00:00:00+08:00</updated><id>/elasticsearch/2020/04/28/es-snapshot_restore</id><content type="html" xml:base="/elasticsearch/2020/04/28/es-snapshot_restore.html">&lt;ul&gt;
-  &lt;li&gt;&lt;a href=&quot;#1-%E6%A6%82%E8%BF%B0&quot;&gt;1. 概述&lt;/a&gt;&lt;/li&gt;
-  &lt;li&gt;&lt;a href=&quot;#2-%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87&quot;&gt;2. 环境准备&lt;/a&gt;
-    &lt;ul&gt;
-      &lt;li&gt;&lt;a href=&quot;#21-elasticsearch-234&quot;&gt;2.1. elasticsearch-2.3.4&lt;/a&gt;
-        &lt;ul&gt;
-          &lt;li&gt;&lt;a href=&quot;#211-elasticsearch%E5%AE%89%E8%A3%85&quot;&gt;2.1.1. elasticsearch安装&lt;/a&gt;&lt;/li&gt;
-          &lt;li&gt;&lt;a href=&quot;#212-repository-hdfs%E6%8F%92%E4%BB%B6%E5%AE%89%E8%A3%85&quot;&gt;2.1.2. repository-hdfs插件安装&lt;/a&gt;&lt;/li&gt;
-          &lt;li&gt;&lt;a href=&quot;#213-%E9%80%A0%E6%95%B0&quot;&gt;2.1.3. 造数&lt;/a&gt;&lt;/li&gt;
-        &lt;/ul&gt;
-      &lt;/li&gt;
-      &lt;li&gt;&lt;a href=&quot;#22-hadoop-270&quot;&gt;2.2. hadoop-2.7.0&lt;/a&gt;
-        &lt;ul&gt;
-          &lt;li&gt;&lt;a href=&quot;#221-%E4%B8%8B%E8%BD%BD&quot;&gt;2.2.1. 下载&lt;/a&gt;&lt;/li&gt;
-          &lt;li&gt;&lt;a href=&quot;#222-%E5%AE%89%E8%A3%85&quot;&gt;2.2.2. 安装&lt;/a&gt;&lt;/li&gt;
-          &lt;li&gt;&lt;a href=&quot;#223-%E9%85%8D%E7%BD%AEssh%E5%85%8D%E5%AF%86&quot;&gt;2.2.3. 配置ssh免密&lt;/a&gt;&lt;/li&gt;
-          &lt;li&gt;&lt;a href=&quot;#224-%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F&quot;&gt;2.2.4. 格式化文件系统&lt;/a&gt;&lt;/li&gt;
-          &lt;li&gt;&lt;a href=&quot;#225-%E5%90%AF%E5%8A%A8hdfs&quot;&gt;2.2.5 启动HDFS&lt;/a&gt;&lt;/li&gt;
-        &lt;/ul&gt;
-      &lt;/li&gt;
-    &lt;/ul&gt;
-  &lt;/li&gt;
-  &lt;li&gt;&lt;a href=&quot;#3-%E6%B3%A8%E5%86%8C%E4%BB%93%E5%BA%93&quot;&gt;3. 注册仓库&lt;/a&gt;&lt;/li&gt;
-  &lt;li&gt;&lt;a href=&quot;#%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3&quot;&gt;参考文档&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h1 id=&quot;1-概述&quot;&gt;1. 概述&lt;/h1&gt;
-&lt;p&gt;最近工作中使用了es的snapshot/restore来进行跨集群同步，将步骤整理为此文档。&lt;br /&gt;
-&lt;strong&gt;说明&lt;/strong&gt; ：本文仅适用于es2.3.4与hadoop2.7.0，其他版本请参考es官方文档。&lt;/p&gt;
-
-&lt;h1 id=&quot;2-环境准备&quot;&gt;2. 环境准备&lt;/h1&gt;
-
-&lt;h2 id=&quot;21-elasticsearch-234&quot;&gt;2.1. elasticsearch-2.3.4&lt;/h2&gt;
-
-&lt;h3 id=&quot;211-elasticsearch安装&quot;&gt;2.1.1. elasticsearch安装&lt;/h3&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://www.elastic.co/cn/downloads/past-releases/elasticsearch-2-3-4&quot;&gt;官网下载地址&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;为简单起见，示例全部采用默认配置，直接将程序包解压运行&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;./bin/elasticsearch -d -p pid # 后台运行，将pid输出到pid文件  
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;42-查看快照信息&quot;&gt;4.2. 查看快照信息&lt;/h2&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl'http://localhost:9200/_snapshot/hdfs_repo/snapshot_1‘
+curl'http://localhost:9200/_snapshot/hdfs_repo/_all‘
+curl'http://localhost:9200/_cat/snapshots/hdfs_repo?v'
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;注&lt;/strong&gt;：hdfs_repo为前文已经创建了的仓库名，snapsot_1为前文已创建的快照名，后文同。&lt;/p&gt;
+
+&lt;h2 id=&quot;43--快照删除与停止&quot;&gt;4.3.  快照删除与停止&lt;/h2&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl -XDELETE 'http://localhost:9200/_snapshot/hdfs_repo/snapshot_1'
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h1 id=&quot;5-快照恢复&quot;&gt;5. 快照恢复&lt;/h1&gt;
+&lt;h2 id=&quot;51-恢复&quot;&gt;5.1. 恢复&lt;/h2&gt;
+&lt;p&gt;为了进行验证首先删除原索引&lt;/p&gt;
+
 &lt;ul&gt;
-  &lt;li&gt;验证
-    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ curl localhost:9200  
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-    &lt;p&gt;&lt;img src=&quot;/assets/elasticsearch/es-start-success.png&quot; alt=&quot;es-start-success.png&quot; /&gt;&lt;/p&gt;
-  &lt;/li&gt;
+  &lt;li&gt;删除索引&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&quot;212-repository-hdfs插件安装&quot;&gt;2.1.2. repository-hdfs插件安装&lt;/h3&gt;
-
-&lt;p&gt;若采用hdfs作为快照存储介质，需要额外安装插件。2.3.4版本的插件较为特殊，直接按照官方方式进行安装后执行snapshot时会出现依赖相关问题，此处不进行深入分析。直接采用第三方仓库提供的插件(&lt;a href=&quot;https://oss.sonatype.org/content/repositories/snapshots/org/elasticsearch/elasticsearch-repository-hdfs/2.3.4.BUILD-SNAPSHOT/&quot;&gt;下载地址&lt;/a&gt;)。&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;注意&lt;/strong&gt;: 示例采用elasticsearch-repository-hdfs-2.3.4.BUILD-20160801.050226-25-hadoop2.zip，其他版本不保证可用。&lt;/p&gt;
-&lt;ul&gt;
-  &lt;li&gt;安装
-    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ./bin/plugin install file:///path/to/elasticsearch-repository-hdfs-2.3.4.BUILD-20160801.050226-25-hadoop2.zip
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-  &lt;/li&gt;
-  &lt;li&gt;验证
-查看已安装插件列表
-    &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ./bin/plugin list
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h3 id=&quot;213-造数&quot;&gt;2.1.3. 造数&lt;/h3&gt;
-
-&lt;p&gt;为了后续验证，在es中新建索引并添加数据。&lt;/p&gt;
-&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#! /bin/bash&lt;/span&gt;
-&lt;span class=&quot;c&quot;&gt;# 创建名为test-index的索引&lt;/span&gt;
-curl &lt;span class=&quot;nt&quot;&gt;-XPUT&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'http://localhost:9200/test-index/'&lt;/span&gt; 
-&lt;span class=&quot;c&quot;&gt;# 插入若干条数据&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;i &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;1..1001&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;do
-  &lt;/span&gt;curl &lt;span class=&quot;nt&quot;&gt;-XPOST&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'http://localhost:9200/test-index/doc'&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'{&quot;name&quot;:&quot;tom&quot;}'&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;done&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;目前es状态通过head查看如下：
-&lt;img src=&quot;/assets/elasticsearch/es-data.png&quot; alt=&quot;es-data.png&quot; /&gt;&lt;/p&gt;
-
-&lt;h2 id=&quot;22-hadoop-270&quot;&gt;2.2. hadoop-2.7.0&lt;/h2&gt;
-&lt;h3 id=&quot;221-下载&quot;&gt;2.2.1. 下载&lt;/h3&gt;
-&lt;p&gt;&lt;a href=&quot;https://archive.apache.org/dist/hadoop/common/hadoop-2.7.0&quot;&gt;官网下载地址&lt;/a&gt;&lt;/p&gt;
-&lt;h3 id=&quot;222-安装&quot;&gt;2.2.2. 安装&lt;/h3&gt;
-&lt;p&gt;为了简单起见，示例采用伪分布式安装(pseudo-distributed)，将程序包解压，并修改如下配置文件：&lt;/p&gt;
-&lt;ul&gt;
-  &lt;li&gt;etc/hadoop/hadoop-env.sh
-    &lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;# 设置java路径
-export JAVA_HOME=/path/to/java
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-  &lt;/li&gt;
-  &lt;li&gt;etc/hadoop/core-site.xml&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;  
-      &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;  
-          &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;fs.defaultFS&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;  
-          &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;hdfs://localhost:9000&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;  
-      &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;  
- &lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;  
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;ul&gt;
-  &lt;li&gt;etc/hadoop/hdfs-site.xml&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;  
-     &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;  
-         &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.replication&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;  
-         &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;1&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;  
-     &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;  
-     &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;  
-        &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.name.dir&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;  
-        &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;/tmp/hadoop/2.7.0/name&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;  
-    &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;  
-    &lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;  
-        &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;dfs.data.dir&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;  
-        &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;/tmp/hadoop/2.7.0/data&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;  
-    &lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;  
- &lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;  
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;h3 id=&quot;223-配置ssh免密&quot;&gt;2.2.3. 配置ssh免密&lt;/h3&gt;
-&lt;p&gt;若ssh loclhost无法登陆本机，则进行如下操作：&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa  
-$ cat ~/.ssh/id_rsa.pub &amp;gt;&amp;gt; ~/.ssh/authorized_keys  
-$ chmod 0600 ~/.ssh/authorized_keys  
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;h3 id=&quot;224-格式化文件系统&quot;&gt;2.2.4. 格式化文件系统&lt;/h3&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ./bin/hdfs namenode -format  
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;出现如下信息，说明成功&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/elasticsearch/format-success.png&quot; alt=&quot;format-success.png&quot; /&gt;&lt;/p&gt;
-
-&lt;h3 id=&quot;225-启动hdfs&quot;&gt;2.2.5 启动HDFS&lt;/h3&gt;
-&lt;ul&gt;
-  &lt;li&gt;启动&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ./sbin/start-dfs.sh  
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl -XDELETE 'http://localhost:9200/test-index'
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;验证
-    &lt;ol&gt;
-      &lt;li&gt;通过jps命令查看相关进程是否存在&lt;/li&gt;
-      &lt;li&gt;浏览器访问web ui，地址http://localhost:50070 (hadoop2默认为50070端口)&lt;/li&gt;
-    &lt;/ol&gt;
-  &lt;/li&gt;
+  &lt;li&gt;数据恢复&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h1 id=&quot;3-注册仓库&quot;&gt;3. 注册仓库&lt;/h1&gt;
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl &lt;span class=&quot;nt&quot;&gt;-XPUT&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'http://localhost:9200/_snapshot/hdfs_repo'&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; 
-&lt;span class=&quot;s1&quot;&gt;'{
-  &quot;type&quot;: &quot;hdfs&quot;,
-  &quot;settings&quot;: {
-    &quot;uri&quot;: &quot;hdfs://localhost:9000&quot;,
-    &quot;path&quot;: &quot;elasticsearch/respositories/my_hdfs_repository&quot;,
-    &quot;max_restore_bytes_per_sec&quot;:&quot;1mb&quot;,
-    &quot;max_snapshot_bytes_per_sec&quot;:&quot;1mb&quot;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl -XPOST 'localhost:9200/_snapshot/hdfs_repo/snapshot_1/_restore?wait_for_completion=false' -d
+'{
+  &quot;ignore_unavailable&quot;: true,
+  &quot;include_global_state&quot;: false,
+  &quot;partial&quot;: true,
+  &quot;index_settings&quot;:{
+  	&quot;index.number_of_replicas&quot;:0
   }
-}'&lt;/span&gt;
+}'
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;&lt;strong&gt;注意&lt;/strong&gt; ：创建仓库时若出现&lt;em&gt;access_control_exception&lt;/em&gt;错误，则说明没有hdfs相关目录的权限，需要先授权。&lt;/p&gt;
+
 &lt;ul&gt;
-  &lt;li&gt;配置说明&lt;/li&gt;
+  &lt;li&gt;参数说明
+index_settings为索引设置，可以通过该参数设置索引的分片数、副本数等，其他参数含义与创建快照时相同。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;基于HDFS的配置最常用的为示例中几个，uri和path是必不可少，余下两个是限速参数，实际生产环境中也不可或缺。参数详细说明以及其他参数请参考如下文档：
-&lt;a href=&quot;[https://www.elastic.co/guide/en/elasticsearch/reference/2.3/modules-snapshots.html](https://www.elastic.co/guide/en/elasticsearch/reference/2.3/modules-snapshots.html)&quot;&gt;Snapshot And Restore&lt;/a&gt;
-&lt;a href=&quot;https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/repository-hdfs-config.html&quot;&gt;HDFS存储配置说明(此为5.2版本文档，2.3同样适用)&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&quot;52-恢复进度查看&quot;&gt;5.2. 恢复进度查看&lt;/h2&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl'http://localhost:9200/_snapshot/hdfs_repo/snapshot_1‘ # 信息详细，但较慢
+curl'http://localhost:9200/_snapshot/hdfs_repo/snapshot_1/_status‘ # 较快，但信息少
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;h1 id=&quot;参考文档&quot;&gt;参考文档&lt;/h1&gt;
-&lt;p&gt;&lt;a href=&quot;https://www.elastic.co/guide/en/elasticsearch/reference/2.3/modules-snapshots.html&quot;&gt;Elasticsearch Reference[2.3] Snapshot And Restore&lt;/a&gt;&lt;/p&gt;</content><author><name></name></author><summary type="html">1. 概述 2. 环境准备 2.1. elasticsearch-2.3.4 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 参考文档</summary></entry><entry><title type="html">Redis-数据库</title><link href="/redis/2019/04/02/redis-db.html" rel="alternate" type="text/html" title="Redis-数据库" /><published>2019-04-02T00:00:00+08:00</published><updated>2019-04-02T00:00:00+08:00</updated><id>/redis/2019/04/02/redis-db</id><content type="html" xml:base="/redis/2019/04/02/redis-db.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
+&lt;h2 id=&quot;53-中止恢复&quot;&gt;5.3. 中止恢复&lt;/h2&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl -XDELETE 'http://localhost:9200/_snapshot/hdfs_repo/snapshot_1' # 与删除快照命令一样
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name></name></author><summary type="html">0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception 4.2. 查看快照信息 4.3. 快照删除与停止 5. 快照恢复 5.1. 恢复 5.2. 恢复进度查看 5.3. 中止恢复</summary></entry><entry><title type="html">Redis-数据库</title><link href="/redis/2019/04/02/redis-db.html" rel="alternate" type="text/html" title="Redis-数据库" /><published>2019-04-02T00:00:00+08:00</published><updated>2019-04-02T00:00:00+08:00</updated><id>/redis/2019/04/02/redis-db</id><content type="html" xml:base="/redis/2019/04/02/redis-db.html">&lt;h4 id=&quot;reference&quot;&gt;Reference&lt;/h4&gt;
 &lt;blockquote&gt;
   &lt;ul&gt;
     &lt;li&gt;《Redis设计与实现》&lt;/li&gt;
