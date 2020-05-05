@@ -7,15 +7,15 @@
 <meta name="generator" content="Jekyll v4.0.0" />
 <meta property="og:title" content="Elasticsearch-5.2.2基于HDFS的Snapshot/Restore" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception 4.2. 查看快照信息 4.3. 快照删除与停止 5. 快照恢复 5.1. 恢复 5.2. 恢复进度查看 5.3. 中止恢复" />
-<meta property="og:description" content="0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception 4.2. 查看快照信息 4.3. 快照删除与停止 5. 快照恢复 5.1. 恢复 5.2. 恢复进度查看 5.3. 中止恢复" />
+<meta name="description" content="Table of Contents generated with DocToc" />
+<meta property="og:description" content="Table of Contents generated with DocToc" />
 <link rel="canonical" href="/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html" />
 <meta property="og:url" content="/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html" />
 <meta property="og:site_name" content="彭晨的博客" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2020-04-29T00:00:00+08:00" />
 <script type="application/ld+json">
-{"url":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html","headline":"Elasticsearch-5.2.2基于HDFS的Snapshot/Restore","dateModified":"2020-04-29T00:00:00+08:00","datePublished":"2020-04-29T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html"},"description":"0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception 4.2. 查看快照信息 4.3. 快照删除与停止 5. 快照恢复 5.1. 恢复 5.2. 恢复进度查看 5.3. 中止恢复","@type":"BlogPosting","@context":"https://schema.org"}</script>
+{"url":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html","headline":"Elasticsearch-5.2.2基于HDFS的Snapshot/Restore","dateModified":"2020-04-29T00:00:00+08:00","datePublished":"2020-04-29T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html"},"description":"Table of Contents generated with DocToc","@type":"BlogPosting","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="彭晨的博客" /></head>
 <body><header class="site-header" role="banner">
@@ -45,7 +45,11 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <ul>
+    <!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<p><strong>Table of Contents</strong>  <em>generated with <a href="https://github.com/thlorenz/doctoc">DocToc</a></em></p>
+
+<ul>
   <li><a href="#0-%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3">0. 参考文档</a></li>
   <li><a href="#1-%E6%A6%82%E8%BF%B0">1. 概述</a></li>
   <li><a href="#2-%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87">2. 环境准备</a>
@@ -73,7 +77,7 @@
     <ul>
       <li><a href="#41-access_control_exception">4.1. access_control_exception</a></li>
       <li><a href="#42-%E6%9F%A5%E7%9C%8B%E5%BF%AB%E7%85%A7%E4%BF%A1%E6%81%AF">4.2. 查看快照信息</a></li>
-      <li><a href="#43--%E5%BF%AB%E7%85%A7%E5%88%A0%E9%99%A4%E4%B8%8E%E5%81%9C%E6%AD%A2">4.3. 快照删除与停止</a></li>
+      <li><a href="#43--%E5%BF%AB%E7%85%A7%E5%88%A0%E9%99%A4%E4%B8%8E%E5%81%9C%E6%AD%A2">4.3.  快照删除与停止</a></li>
     </ul>
   </li>
   <li><a href="#5-%E5%BF%AB%E7%85%A7%E6%81%A2%E5%A4%8D">5. 快照恢复</a>
@@ -84,6 +88,8 @@
     </ul>
   </li>
 </ul>
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 <h1 id="0-参考文档">0. 参考文档</h1>
 <p><a href="https://www.elastic.co/guide/en/elasticsearch/reference/5.2/modules-snapshots.html">Elasticsearch Reference[5.2.2] Snapshot And Restore</a><br />
@@ -403,6 +409,8 @@ curl'http://localhost:9200/_cat/snapshots/hdfs_repo?v'
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl -XDELETE 'http://localhost:9200/_snapshot/hdfs_repo/snapshot_1'
 </code></pre></div></div>
 <h1 id="5-快照恢复">5. 快照恢复</h1>
+<p>示例为同集群恢复，若需跨集群恢复则需在目标集群中安装repository-hefs插件以及注册与源集群位置一样的仓库。</p>
+
 <h2 id="51-恢复">5.1. 恢复</h2>
 <p>为了进行验证首先删除原索引</p>
 
