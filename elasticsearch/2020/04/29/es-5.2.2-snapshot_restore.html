@@ -15,7 +15,7 @@
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2020-04-29T00:00:00+08:00" />
 <script type="application/ld+json">
-{"datePublished":"2020-04-29T00:00:00+08:00","headline":"Elasticsearch-5.2.2基于HDFS的Snapshot/Restore","mainEntityOfPage":{"@type":"WebPage","@id":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html"},"url":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html","description":"0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception 4.2. 查看快照信息 4.3. 快照删除与停止 5. 快照恢复 5.1. 恢复 5.2. 恢复进度查看 5.3. 中止恢复","@type":"BlogPosting","dateModified":"2020-04-29T00:00:00+08:00","@context":"https://schema.org"}</script>
+{"url":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html","headline":"Elasticsearch-5.2.2基于HDFS的Snapshot/Restore","dateModified":"2020-04-29T00:00:00+08:00","datePublished":"2020-04-29T00:00:00+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"/elasticsearch/2020/04/29/es-5.2.2-snapshot_restore.html"},"description":"0. 参考文档 1. 概述 2. 环境准备 2.1. elasticsearch-5.2.2 2.1.1. elasticsearch安装 2.1.2. repository-hdfs插件安装 2.1.3. 造数 2.2. hadoop-2.7.0 2.2.1. 下载 2.2.2. 安装 2.2.3. 配置ssh免密 2.2.4. 格式化文件系统 2.2.5 启动HDFS 3. 注册仓库 4. 创建快照 4.1. access_control_exception 4.2. 查看快照信息 4.3. 快照删除与停止 5. 快照恢复 5.1. 恢复 5.2. 恢复进度查看 5.3. 中止恢复","@type":"BlogPosting","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="彭晨的博客" /></head>
 <body><header class="site-header" role="banner">
@@ -136,8 +136,7 @@ http.cors.allow-origin: "*"
 
 <h3 id="212-repository-hdfs插件安装">2.1.2. repository-hdfs插件安装</h3>
 
-<p>若采用hdfs作为快照存储介质，需要额外安装插件。
-(<a href="./bin/elasticsearch-plugin install file:///Users/pengchen/softwares/repository-hdfs-5.2.2.zip">插件下载地址</a>)。</p>
+<p>若采用hdfs作为快照存储介质，需要额外安装插件(<a href="https://artifacts.elastic.co/downloads/elasticsearch-plugins/repository-hdfs/repository-hdfs-5.2.2.zip">插件下载地址</a>)。</p>
 
 <ul>
   <li>安装</li>
@@ -266,10 +265,10 @@ $ chmod 0600 ~/.ssh/authorized_keys
 <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./bin/hdfs dfs -ls -R /
 
 20/04/29 21:04:45 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user
-drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user/pengchen
-drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user/pengchen/es
-drwxr-xr-x   - pengchen supergroup          0 2020-04-29 21:03 /user/pengchen/es/hdfs_repo
+drwxr-xr-x   - username supergroup          0 2020-04-29 21:03 /user
+drwxr-xr-x   - username supergroup          0 2020-04-29 21:03 /user/username
+drwxr-xr-x   - username supergroup          0 2020-04-29 21:03 /user/username/es
+drwxr-xr-x   - username supergroup          0 2020-04-29 21:03 /user/username/es/hdfs_repo
 </code></pre></div></div>
 
 <ul>
